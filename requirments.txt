@@ -1,0 +1,334 @@
+1. Business Team Board
+Focus: Sales, Marketing, Ops, HR
+
+Columns:
+
+Backlog/Ideas (Unfiltered requests and brainstorming)
+
+Priority/To-Do (Selected for this week/sprint)
+
+In Progress (Active work: drafting, calling, planning)
+
+Review/Approval (Waiting for manager sign-off or legal check)
+
+Waiting (External) (Blocked by vendors, clients, or 3rd parties)
+
+Done/Published (Completed)
+
+Swimlanes (Rows):
+
+Sales
+
+Marketing
+
+Operations
+
+Admin
+
+Suggested Tags: Urgent, Client-Facing, Internal, Content
+
+2. Software Development Board
+Focus: Web, Mobile, Desktop App, Backend
+
+Columns:
+
+Backlog (User stories and technical debt)
+
+Design/Specs (Architecture planning, UI/UX mockups)
+
+Development (Coding in progress)
+
+Code Review (Pull Request open, peer review active)
+
+QA/Testing (Deployed to test env, verifying bugs)
+
+UAT/Staging (Pre-production check, client demo)
+
+Deployed/Done (Live in production)
+
+Swimlanes (Rows):
+
+Frontend
+
+Backend
+
+DevOps/Infra
+
+Suggested Tags: Bug, Feature, Hotfix, Tech Debt
+
+3. Mechanical Development Board
+Focus: Enclosures, Mechanisms, Thermal, Manufacturing
+
+Columns:
+
+Requirements/Concept (Sketching, constraints analysis)
+
+CAD Design (3D modeling, assembly work)
+
+Simulation/FEA (Digital stress/thermal testing)
+
+Prototyping (3D printing, CNC in-house)
+
+Out for Mfg (Vendor) (Waiting for parts/machining—Hold State)
+
+Inspection/Assembly (Quality check, fitting parts)
+
+Validation Testing (Drop test, vibration, IP rating)
+
+Released (Drawings locked for mass production)
+
+Swimlanes (Rows):
+
+Enclosure
+
+Moving Parts
+
+Packaging
+
+Suggested Tags: Material-Aluminium, Material-Plastic, Long-Lead-Time
+
+4. Firmware Development Board
+Focus: Embedded C/C++, Drivers, RTOS
+
+Columns:
+
+Backlog (Features, drivers, optimizations)
+
+Architecture/HAL (Hardware Abstraction Layer design)
+
+Implementation (Writing code)
+
+Unit Testing (Sim) (Logic testing in simulation/PC)
+
+HIL Testing (On Target) (Testing on actual hardware)
+
+Debugging (Oscilloscope/Logic Analyzer work)
+
+Stable/Merged (Code works on hardware and merged)
+
+Swimlanes (Rows):
+
+Drivers/BSP
+
+Application Logic
+
+Communication (BLE/WiFi)
+
+Suggested Tags: Blocked-by-HW, Critical-Path, Bootloader
+
+5. Electronic/PCB Design Board
+Focus: Schematics, Layout, BOM, Bring-up
+
+Columns:
+
+Specs/Part Selection (BOM Scrub, component sourcing)
+
+Schematic Capture (Circuit design)
+
+Layout/Routing (PCB placement and tracking)
+
+Design Review (ERC, DRC, Peer Review)
+
+Fab & Assembly (Sent to PCB house—Hold State)
+
+Board Bring-up (Power checks, smoke test, flashing)
+
+Functional Verification (Signal integrity, logic checks)
+
+Verified (Ready for integration)
+
+Swimlanes (Rows):
+
+Power Supply
+
+Analog/Sensor
+
+Digital/MCU
+
+Suggested Tags: Re-spin, Part-Shortage, High-Voltage
+
+6. Master Integrated Board (All Teams)
+Focus: Cross-functional synchronization and dependencies
+
+Columns:
+
+Product Backlog (High-level features/milestones)
+
+Analysis & Design (Requirements gathering, CAD, Specs)
+
+Implementation/Build (Coding, Routing, Modeling)
+
+Verification (Local) (Unit tests, Simulation, DRC)
+
+System Integration (Hardware meets Software meets Mechanics)
+
+Final Validation (Field testing, User Acceptance)
+
+Released/Done (Shippable product)
+
+Swimlanes (Rows):
+
+Business/Admin
+
+Software
+
+Firmware
+
+Electronics
+
+Mechanical
+
+Critical Usage Rule: You cannot move a card to "System Integration" until the corresponding cards in the other swimlanes are ready. (e.g., Firmware cannot move to Integration until Electronics moves the PCB to Integration).
+
+
+
+
+
+1. High-Level Architecture
+Tier 1: The Client (PyQt6/PySide6)
+
+Role: The Desktop UI. Handles drag-and-drop, swimlane rendering, and user input.
+
+Logic: Does not process business logic. It sends JSON requests to the API.
+
+Tier 2: The Server (FastAPI or Flask)
+
+Role: The Gatekeeper. Hosted on a cloud service (e.g., Render, Heroku, AWS).
+
+Logic: Validates data, authenticates users, and talks to MongoDB.
+
+Real-time: Uses WebSockets to push updates to clients when a card moves.
+
+Tier 3: The Database (MongoDB Atlas)
+
+Role: Storage.
+
+Feature: Uses MongoDB Change Streams to trigger real-time alerts.
+
+2. The Data Flow (Step-by-Step)
+Scenario A: Initial Load (Read)
+User opens the PyQt app.
+
+PyQt sends a GET /boards/master-board request to the API.
+
+API queries MongoDB Atlas for the board configuration, columns, and all active cards.
+
+MongoDB returns the JSON documents.
+
+PyQt parses the JSON and dynamically draws the Kanban board (painting swimlanes for "Mechanical", "Software", etc.).
+
+Scenario B: Moving a Card (Write)
+User drags a card from "Design" to "Prototyping" in the "Mechanical" swimlane.
+
+PyQt immediately updates the UI (optimistic UI) and sends a PATCH /cards/{card_id} request with the new column_id.
+
+API validates the move (e.g., "Is this user allowed to move mechanical cards?").
+
+API updates the document in MongoDB Atlas.
+
+Scenario C: Real-Time Sync (The "Cloud" Magic)
+MongoDB Atlas detects the update and emits a Change Stream event.
+
+API (listening to the stream) receives this event.
+
+API broadcasts a WebSocket message: {"event": "card_moved", "card_id": "123", "new_col": "Prototyping"}.
+
+Other Clients (PyQt) receive the message and animate the card moving automatically, without the user refreshing.
+
+3. MongoDB Schema Design (JSON Structure)
+To handle your "Master Integrated Board" with combined swimlanes, you need a flexible schema.
+
+Collection: boards Defines the structure of columns and swimlanes.
+
+JSON
+
+{
+  "_id": "board_001",
+  "name": "Project Alpha Master Board",
+  "columns": [
+    {"id": "c1", "name": "Backlog", "order": 1},
+    {"id": "c2", "name": "Design", "order": 2},
+    {"id": "c3", "name": "Implementation", "order": 3},
+    {"id": "c4", "name": "Integration", "order": 4},
+    {"id": "c5", "name": "Done", "order": 5}
+  ],
+  "swimlanes": [
+    {"id": "sw_biz", "name": "Business Team"},
+    {"id": "sw_soft", "name": "Software"},
+    {"id": "sw_mech", "name": "Mechanical"},
+    {"id": "sw_fw", "name": "Firmware"},
+    {"id": "sw_elec", "name": "Electronics"}
+  ]
+}
+Collection: cards The actual tasks. Note the swimlane_id field which places it in the correct row.
+
+JSON
+
+{
+  "_id": "card_509",
+  "board_id": "board_001",
+  "title": "PCB Thermal Simulation",
+  "description": "Run thermal analysis on the power regulator section.",
+  "column_id": "c2",       // Currently in "Design"
+  "swimlane_id": "sw_mech", // Belongs to "Mechanical" row
+  "assignee": "Engineer_A",
+  "priority": "High",
+  "tags": ["Simulation", "Thermal"],
+  "history": [
+    {"action": "moved", "from": "c1", "to": "c2", "date": "2023-10-27"}
+  ]
+}
+4. PyQt Code Structure (Folder Layout)
+Keep your UI logic separate from your network logic to keep the app responsive.
+
+Plaintext
+
+/kanban_app
+│
+├── /api_server (FastAPI)
+│   ├── main.py            # API Routes (GET /cards, POST /move)
+│   ├── database.py        # PyMongo connection to Atlas
+│   └── models.py          # Pydantic models for validation
+│
+└── /desktop_client (PyQt)
+    ├── main.py            # App entry point
+    ├── /ui
+    │   ├── main_window.py # The shell of the app
+    │   ├── board_view.py  # Custom QWidget painting the grid
+    │   ├── swimlane.py    # Widget for a single row
+    │   └── card_widget.py # Draggable custom widget
+    │
+    ├── /network
+    │   ├── api_client.py  # Handles HTTP requests (requests/httpx)
+    │   └── socket_mgr.py  # Handles WebSocket connection
+    │
+    └── /utils
+        └── drag_drop.py   # Custom drag and drop logic
+5. Key Technical Challenges & Solutions
+The "Blocking" Problem:
+
+Issue: If the PyQt app waits for the slow cloud database to respond, the UI will freeze.
+
+Solution: Use QThread or PyQt6.QtNetwork for all API calls. Never run requests.get() on the main UI thread.
+
+Drag and Drop in Swimlanes:
+
+Issue: Standard PyQt Lists (QListWidget) don't handle 2D grids (Columns x Swimlanes) well.
+
+Solution: You must use QGridLayout.
+
+Create a QScrollArea for the main board.
+
+Inside, set a QVBoxLayout (Vertical).
+
+Add a custom widget for each Swimlane.
+
+Inside each Swimlane, use a QHBoxLayout (Horizontal) for the Columns.
+
+Inside each Column, use a QVBoxLayout to stack the Cards.
+
+Offline Mode:
+
+Since it is cloud-based, what if internet drops?
+
+Use a local SQLite database or a JSON file as a cache. When internet returns, sync changes to MongoDB Atlas.
