@@ -73,10 +73,6 @@ class ProjectView(tk.Frame):
             except ValueError:
                 return 
 
-            # RULES:
-            # 1. Allow reordering (Same column)
-            # 2. Allow moving forward by exactly 1 step (Next column)
-            # 3. Allow explicitly moving from DONE -> BACKLOG (Reject loop)
             
             allowed = False
             
@@ -84,13 +80,15 @@ class ProjectView(tk.Frame):
                 allowed = True # Reorder
             elif new_idx == old_idx + 1:
                 allowed = True # Next Stage
-            elif old_status == "Done" and new_status == "Backlog":
+            # --- UPDATE THIS CONDITION ---
+            elif (old_status == "Done" or old_status == "Approved") and new_status == "Backlog":
                 allowed = True # Reject/Redo
             
             if allowed:
                 insert_index = target_column.get_card_at_y(y_root)
                 self.move_task_in_db(card.task, new_status, insert_index)
             else:
+                # Add a message box or print for debugging
                 print(f"Movement rejected: Cannot move from {old_status} to {new_status}")
         
         self.dragging_card = None
