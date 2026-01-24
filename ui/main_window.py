@@ -2,6 +2,8 @@
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 from ui.project_view import ProjectView
+# Import the new helper function
+from ui.dialogs import ask_new_project_info 
 
 class MainWindow(tk.Tk):
     def __init__(self, db):
@@ -33,9 +35,11 @@ class MainWindow(tk.Tk):
         self.refresh_project_list()
 
     def create_project(self):
-        name = simpledialog.askstring("New Project", "Enter project name:", parent=self)
-        if name:
-            project = self.db.create_project(name)
+        # CHANGED: Use the custom dialog instead of askstring
+        data = ask_new_project_info(self)
+        
+        if data and data['name']: # Ensure at least a name is provided
+            project = self.db.create_project(data)
             if project:
                 self.refresh_project_list()
             else:

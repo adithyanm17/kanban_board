@@ -10,10 +10,16 @@ class Database:
 
     def create_tables(self):
         cursor = self.conn.cursor()
+        # Updated table with new columns
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS projects (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL UNIQUE
+                name TEXT NOT NULL UNIQUE,
+                description TEXT,
+                customer TEXT,
+                estimated_time TEXT,
+                start_date TEXT,
+                end_date TEXT
             )
         """)
         cursor.execute("""
@@ -30,25 +36,29 @@ class Database:
         self.conn.commit()
 
     # --- Project Methods ---
-    def create_project(self, name):
+    # Updated to accept a dictionary of data
+    def create_project(self, data):
         try:
             cursor = self.conn.cursor()
-            cursor.execute("INSERT INTO projects (name) VALUES (?)", (name,))
+            cursor.execute("""
+                INSERT INTO projects (name, description, customer, estimated_time, start_date, end_date) 
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (data['name'], data['description'], data['customer'], data['estimated_time'], data['start_date'], data['end_date']))
             self.conn.commit()
-            return Project(cursor.lastrowid, name)
+            return Project(cursor.lastrowid, data['name'], data['description'], data['customer'], data['estimated_time'], data['start_date'], data['end_date'])
         except sqlite3.IntegrityError:
-            return None # Project name already exists
+            return None 
 
     def get_projects(self):
         cursor = self.conn.cursor()
         cursor.execute("SELECT * FROM projects")
         rows = cursor.fetchall()
-        return [Project(row['id'], row['name']) for row in rows]
+        # Map all columns to the model
+        return [Project(row['id'], row['name'], row['description'], row['customer'], row['estimated_time'], row['start_date'], row['end_date']) for row in rows]
 
-    # --- Task Methods ---
+    # ... (Keep Task Methods exactly as they were) ...
     def create_task(self, project_id, title, description, status):
         cursor = self.conn.cursor()
-        # Get the current highest sort_order for this column to append to the end
         cursor.execute("SELECT MAX(sort_order) FROM tasks WHERE project_id = ? AND status = ?", (project_id, status))
         max_order = cursor.fetchone()[0]
         new_order = (max_order + 1) if max_order is not None else 0
@@ -70,17 +80,11 @@ class Database:
         return [Task(row['id'], row['project_id'], row['title'], row['description'], row['status'], row['sort_order']) for row in rows]
 
     def update_task_status_and_order(self, task_id, new_status, new_order, peer_tasks_to_update):
-        """
-        Updates a task's status and order, and shifts the order of other tasks in the new column.
-        peer_tasks_to_update: list of (task_id, new_order) tuples for tasks that need re-ordering.
-        """
         cursor = self.conn.cursor()
-        # 1. Update the moved task
         cursor.execute(
             "UPDATE tasks SET status = ?, sort_order = ? WHERE id = ?",
             (new_status, new_order, task_id)
         )
-        # 2. Update orders of other tasks in the destination column
         for t_id, t_order in peer_tasks_to_update:
             cursor.execute("UPDATE tasks SET sort_order = ? WHERE id = ?", (t_order, t_id))
         
