@@ -3,6 +3,7 @@ import sqlite3
 from models import Project, Task
 
 class Database:
+    # ... (Keep existing __init__, create_tables, create_project, get_projects) ...
     def __init__(self, db_name="kanban.db"):
         self.conn = sqlite3.connect(db_name)
         self.conn.row_factory = sqlite3.Row
@@ -10,7 +11,6 @@ class Database:
 
     def create_tables(self):
         cursor = self.conn.cursor()
-        # Updated table with new columns
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS projects (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,8 +35,6 @@ class Database:
         """)
         self.conn.commit()
 
-    # --- Project Methods ---
-    # Updated to accept a dictionary of data
     def create_project(self, data):
         try:
             cursor = self.conn.cursor()
@@ -53,10 +51,19 @@ class Database:
         cursor = self.conn.cursor()
         cursor.execute("SELECT * FROM projects")
         rows = cursor.fetchall()
-        # Map all columns to the model
         return [Project(row['id'], row['name'], row['description'], row['customer'], row['estimated_time'], row['start_date'], row['end_date']) for row in rows]
 
-    # ... (Keep Task Methods exactly as they were) ...
+    # --- NEW METHOD: Update Project ---
+    def update_project(self, project_id, data):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            UPDATE projects 
+            SET name=?, description=?, customer=?, estimated_time=?, start_date=?, end_date=?
+            WHERE id=?
+        """, (data['name'], data['description'], data['customer'], data['estimated_time'], data['start_date'], data['end_date'], project_id))
+        self.conn.commit()
+
+    # ... (Keep existing Task methods exactly as they are) ...
     def create_task(self, project_id, title, description, status):
         cursor = self.conn.cursor()
         cursor.execute("SELECT MAX(sort_order) FROM tasks WHERE project_id = ? AND status = ?", (project_id, status))
@@ -87,7 +94,6 @@ class Database:
         )
         for t_id, t_order in peer_tasks_to_update:
             cursor.execute("UPDATE tasks SET sort_order = ? WHERE id = ?", (t_order, t_id))
-        
         self.conn.commit()
 
     def close(self):
