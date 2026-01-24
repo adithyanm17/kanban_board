@@ -1,4 +1,3 @@
-# ui/main_window.py
 import tkinter as tk
 from tkinter import simpledialog, messagebox, ttk
 from ui.project_view import ProjectView

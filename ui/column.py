@@ -1,4 +1,3 @@
-# ui/column.py
 import tkinter as tk
 from ui.task_card import TaskCard
 

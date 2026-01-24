@@ -1,4 +1,3 @@
-# database.py
 import sqlite3
 from models import Project, Task
 

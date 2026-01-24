@@ -1,4 +1,3 @@
-# ui/dialogs.py
 import tkinter as tk
 from tkinter import simpledialog
 

@@ -1,5 +1,3 @@
-# models.py
-
 class Project:
     def __init__(self, id, name, description=None, customer=None, estimated_time=None, start_date=None, end_date=None):
         self.id = id

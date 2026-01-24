@@ -1,4 +1,3 @@
-# ui/project_view.py
 import tkinter as tk
 from ui.column import KanbanColumn
 from ui.dialogs import ask_new_task_info
