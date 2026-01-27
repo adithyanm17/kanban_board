@@ -16,3 +16,14 @@ class Task:
         self.description = description
         self.status = status
         self.sort_order = sort_order
+
+
+class Employee:
+    def __init__(self, id, emp_code, name, doj, designation, email, github):
+        self.id = id
+        self.emp_code = emp_code
+        self.name = name
+        self.doj = doj
+        self.designation = designation
+        self.email = email
+        self.github = github

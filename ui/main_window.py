@@ -114,3 +114,10 @@ class MainWindow(tk.Tk):
         # Tab 2: Project Description
         details_frame = ProjectDetailsForm(notebook, self.db, project)
         notebook.add(details_frame, text="  Project Description  ")
+
+    def show_team_view(self):
+        self.sub_sidebar.pack_forget() 
+        self.clear_content()
+        from ui.team_view import TeamView # Import here or at top
+        team_frame = TeamView(self.content_area, self.db)
+        team_frame.pack(fill="both", expand=True)

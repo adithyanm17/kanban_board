@@ -1,6 +1,6 @@
 import sqlite3
 from models import Project, Task
-
+from models import Project, Task, Employee # Update your imports
 class Database:
     # ... (Keep existing __init__, create_tables, create_project, get_projects) ...
     def __init__(self, db_name="kanban.db"):
@@ -30,6 +30,18 @@ class Database:
                 status TEXT NOT NULL,
                 sort_order INTEGER NOT NULL,
                 FOREIGN KEY (project_id) REFERENCES projects (id)
+            )
+        """)
+                # Inside database.py -> create_tables()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS employees (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                emp_code TEXT NOT NULL UNIQUE,
+                name TEXT NOT NULL,
+                doj TEXT,
+                designation TEXT,
+                email TEXT,
+                github TEXT
             )
         """)
         self.conn.commit()
@@ -93,6 +105,40 @@ class Database:
         )
         for t_id, t_order in peer_tasks_to_update:
             cursor.execute("UPDATE tasks SET sort_order = ? WHERE id = ?", (t_order, t_id))
+        self.conn.commit()
+    def save_employee(self, data):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            INSERT INTO employees (emp_code, name, doj, designation, email, github)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (data['emp_code'], data['name'], data['doj'], 
+            data['designation'], data['email'], data['github']))
+        self.conn.commit()
+
+    def get_employees(self):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM employees")
+        rows = cursor.fetchall()
+        return [Employee(row['id'], row['emp_code'], row['name'], row['doj'], 
+                        row['designation'], row['email'], row['github']) for row in rows]
+
+    def get_employee_by_id(self, emp_id):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM employees WHERE id = ?", (emp_id,))
+        row = cursor.fetchone()
+        if row:
+            return Employee(row['id'], row['emp_code'], row['name'], row['doj'], 
+                            row['designation'], row['email'], row['github'])
+        return None
+
+    def update_employee(self, emp_id, data):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            UPDATE employees 
+            SET emp_code=?, name=?, doj=?, designation=?, email=?, github=?
+            WHERE id=?
+        """, (data['emp_code'], data['name'], data['doj'], 
+            data['designation'], data['email'], data['github'], emp_id))
         self.conn.commit()
 
     def close(self):

@@ -72,7 +72,35 @@ class CreateProjectDialog(simpledialog.Dialog):
             "start_date": self.start_date_entry.get(),
             "end_date": self.end_date_entry.get()
         }
+class EmployeeDialog(simpledialog.Dialog):
+    def __init__(self, parent, title, employee=None):
+        self.employee = employee
+        self.result_data = None
+        super().__init__(parent, title=title)
 
+    def body(self, master):
+        self.geometry("400x450")
+        fields = [
+            ("Employee Code:", "emp_code"),
+            ("Name:", "name"),
+            ("Date of Joining:", "doj"),
+            ("Designation:", "designation"),
+            ("Email ID:", "email"),
+            ("GitHub Account:", "github")
+        ]
+        self.entries = {}
+        for i, (label, key) in enumerate(fields):
+            tk.Label(master, text=label).grid(row=i, column=0, sticky="w", pady=5)
+            entry = tk.Entry(master, width=30)
+            entry.grid(row=i, column=1, pady=5, padx=10)
+            if self.employee:
+                val = getattr(self.employee, key)
+                entry.insert(0, val if val else "")
+            self.entries[key] = entry
+        return self.entries["emp_code"]
+
+    def apply(self):
+        self.result_data = {k: v.get() for k, v in self.entries.items()}
 def ask_new_task_info(parent):
     dialog = CreateTaskDialog(parent)
     return dialog.title_str, dialog.desc_str
