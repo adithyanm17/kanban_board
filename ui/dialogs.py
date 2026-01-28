@@ -2,26 +2,44 @@ import tkinter as tk
 from tkinter import simpledialog
 
 class CreateTaskDialog(simpledialog.Dialog):
-    def __init__(self, parent):
+    def __init__(self, parent, team_members=None):
+        self.team_members = team_members or [] # List of Employee objects
+        self.selected_member_ids = []
         self.title_str = None
         self.desc_str = None
         super().__init__(parent, title="Create New Task")
 
     def body(self, master):
-        tk.Label(master, text="Title:").grid(row=0, sticky=tk.W)
-        self.title_entry = tk.Entry(master, width=30)
-        self.title_entry.grid(row=0, column=1)
+        self.geometry("400x500")
+        
+        tk.Label(master, text="Title:").grid(row=0, sticky="w", pady=5)
+        self.title_entry = tk.Entry(master, width=40)
+        self.title_entry.grid(row=0, column=1, pady=5)
 
-        tk.Label(master, text="Description:").grid(row=1, sticky=tk.W, pady=(10, 0))
+        tk.Label(master, text="Description:").grid(row=1, sticky="nw", pady=5)
         self.desc_text = tk.Text(master, width=30, height=5)
-        self.desc_text.grid(row=1, column=1, pady=(10, 0))
+        self.desc_text.grid(row=1, column=1, pady=5)
+
+        # Assignee Selection
+        tk.Label(master, text="Assign To:").grid(row=2, sticky="nw", pady=10)
+        
+        # Using a Listbox with Multiple selection mode
+        self.member_listbox = tk.Listbox(master, selectmode="multiple", width=30, height=6)
+        self.member_listbox.grid(row=2, column=1, pady=10)
+        
+        for member in self.team_members:
+            self.member_listbox.insert(tk.END, f"{member.name} ({member.emp_code})")
+
         return self.title_entry
 
     def apply(self):
         self.title_str = self.title_entry.get()
         self.desc_str = self.desc_text.get("1.0", tk.END).strip()
+        
+        # Get IDs of selected members
+        selected_indices = self.member_listbox.curselection()
+        self.selected_member_ids = [self.team_members[i].id for i in selected_indices]
 
-# --- NEW CLASS BELOW ---
 class CreateProjectDialog(simpledialog.Dialog):
     def __init__(self, parent):
         self.result_data = None
