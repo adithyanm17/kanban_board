@@ -27,6 +27,7 @@ class ProjectView(tk.Frame):
         for i, col_name in enumerate(self.COLUMNS):
             col = KanbanColumn(
                 board_frame, 
+                self.db,           # ADD THIS: Pass the database object here
                 col_name, 
                 self.COLORS[i], 
                 self.on_card_drag_start, 

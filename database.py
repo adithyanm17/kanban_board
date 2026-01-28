@@ -1,3 +1,4 @@
+from datetime import datetime
 import sqlite3
 from models import Project, Task
 from models import Project, Task, Employee # Update your imports
@@ -21,20 +22,23 @@ class Database:
                 end_date TEXT
             )
         """)
-        cursor.execute("""
-            ALTER TABLE tasks ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        """) # Note: This might fail if the column exists; use a try/except or check if exists.
+        try:
+            cursor.execute("ALTER TABLE tasks ADD COLUMN created_at TEXT")
+        except sqlite3.OperationalError:
+            pass # Column already exists
 
+        # Add History Table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS task_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 task_id INTEGER,
                 from_status TEXT,
                 to_status TEXT,
-                move_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                move_date TEXT,
                 FOREIGN KEY (task_id) REFERENCES tasks (id)
             )
         """)
+        self.conn.commit()
                 # Inside database.py -> create_tables()
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS employees (
@@ -157,6 +161,34 @@ class Database:
         """, (data['emp_code'], data['name'], data['doj'], 
             data['designation'], data['email'], data['github'], emp_id))
         self.conn.commit()
+    def get_latest_move(self, task_id):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT from_status, move_date FROM task_history 
+            WHERE task_id = ? ORDER BY id DESC LIMIT 1
+        """, (task_id,))
+        return cursor.fetchone()
+    def update_task_status_and_order(self, task_id, new_status, new_order, peer_tasks_to_update):
+        cursor = self.conn.cursor()
+        
+        # 1. Get current status to see if it changed
+        cursor.execute("SELECT status FROM tasks WHERE id = ?", (task_id,))
+        old_status = cursor.fetchone()[0]
+        
+        # 2. Update the task
+        cursor.execute("UPDATE tasks SET status = ?, sort_order = ? WHERE id = ?",
+                    (new_status, new_order, task_id))
+        
+        # 3. Log move if status is different
+        if old_status != new_status:
+            now = datetime.now().strftime("%Y-%m-%d %H:%M")
+            cursor.execute("INSERT INTO task_history (task_id, from_status, to_status, move_date) VALUES (?, ?, ?, ?)",
+                        (task_id, old_status, new_status, now))
+            
+        for t_id, t_order in peer_tasks_to_update:
+            cursor.execute("UPDATE tasks SET sort_order = ? WHERE id = ?", (t_order, t_id))
+        self.conn.commit()
+    
 
     def close(self):
         self.conn.close()

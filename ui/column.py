@@ -2,13 +2,13 @@ import tkinter as tk
 from ui.task_card import TaskCard
 
 class KanbanColumn(tk.Frame):
-    def __init__(self, parent, status, color, drag_start_cb, drag_end_cb):
+    # Ensure 'db' is included in the arguments list
+    def __init__(self, parent, db, status, color, drag_start_cb, drag_end_cb): 
         super().__init__(parent, bg=color, bd=2, relief="sunken")
+        self.db = db  # Store the database reference
         self.status = status
         self.drag_start_cb = drag_start_cb
         self.drag_end_cb = drag_end_cb
-        self.cards = []
-        self.setup_ui(status, color)
 
     def setup_ui(self, status, color):
         header = tk.Label(self, text=status, bg=color, font=("Arial", 12, "bold"), pady=8)
@@ -31,8 +31,8 @@ class KanbanColumn(tk.Frame):
         self.cards = []
 
     def add_task(self, task):
-        # Removed approve/reject callbacks from here
-        card = TaskCard(self.card_container, task, self.drag_start_cb, self.drag_end_cb)
+        # Ensure self.db is passed here
+        card = TaskCard(self.card_container, self.db, task, self.drag_start_cb, self.drag_end_cb)
         card.pack(fill="x", pady=5, padx=5)
         self.cards.append(card)
 
