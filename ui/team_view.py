@@ -1,6 +1,7 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 from ui.dialogs import EmployeeDialog
+
 
 class TeamView(tk.Frame):
     def __init__(self, parent, db):

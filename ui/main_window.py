@@ -67,9 +67,11 @@ class MainWindow(tk.Tk):
         tk.Label(self.content_area, text="Select a project to view details", font=("Arial", 14), fg="gray", bg="white").pack(expand=True)
 
     def show_team_view(self):
-        self.sub_sidebar.pack_forget() # Hide project list
+        self.sub_sidebar.pack_forget() 
         self.clear_content()
-        tk.Label(self.content_area, text="Team Management (Coming Soon)", font=("Arial", 20), bg="white").pack(expand=True)
+        from ui.team_view import TeamView # Import here or at top
+        team_frame = TeamView(self.content_area, self.db)
+        team_frame.pack(fill="both", expand=True)
 
     def show_settings_view(self):
         self.sub_sidebar.pack_forget() # Hide project list
