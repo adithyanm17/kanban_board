@@ -1,5 +1,6 @@
 # ui/task_card.py
 import tkinter as tk
+from ui.dialogs import CreateTaskDialog
 
 class TaskCard(tk.Frame):
     def __init__(self, parent, db, task, drag_start_callback, drag_end_callback):
@@ -29,14 +30,27 @@ class TaskCard(tk.Frame):
         history = self.db.get_latest_move(self.task.id)
         if history:
             from_col, move_date = history
-            log_text = f"Transferred from {from_col} on {move_date}"
-            tk.Label(self, text=log_text, font=("Arial", 7, "italic"), 
-                     bg="white", fg="#2196F3", anchor="w").pack(fill="x", padx=5, pady=(2, 5))
+            log_text = f"Transferred from {from_col}\non {move_date}" # Added \n for line break
+            lbl_log = tk.Label(self, text=log_text, font=("Arial", 7, "italic"), 
+                            bg="white", fg="#2196F3", anchor="w", justify="left")
+            lbl_log.pack(fill="x", padx=5, pady=(2, 5))
+    def on_edit(self, event):
+        # Re-use the creation dialog but treat it as an edit
+        dialog = CreateTaskDialog(self) 
+        # Pre-fill current data
+        dialog.title_entry.insert(0, self.task.title)
+        dialog.desc_text.insert("1.0", self.task.description)
+        
+        if dialog.title_str: # If user clicked OK
+            self.db.update_task_details(self.task.id, dialog.title_str, dialog.desc_str)
+            # Trigger a board refresh through the parent ProjectView
+            self.master.master.master.master.refresh_board()
 
     def bind_events(self, widget):
         widget.bind("<ButtonPress-1>", self.on_drag_start)
         widget.bind("<B1-Motion>", self.on_drag_motion)
         widget.bind("<ButtonRelease-1>", self.on_drag_stop)
+        widget.bind("<Double-Button-1>", self.on_edit) # Add this line
 
     def on_drag_start(self, event):
         self.drag_window = tk.Toplevel(self)

@@ -188,7 +188,13 @@ class Database:
         for t_id, t_order in peer_tasks_to_update:
             cursor.execute("UPDATE tasks SET sort_order = ? WHERE id = ?", (t_order, t_id))
         self.conn.commit()
-    
+    # Add to Database class in database.py
+    def update_task_details(self, task_id, title, description):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            UPDATE tasks SET title = ?, description = ? WHERE id = ?
+        """, (title, description, task_id))
+        self.conn.commit()
 
     def close(self):
         self.conn.close()
