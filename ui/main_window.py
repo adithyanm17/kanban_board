@@ -1,8 +1,9 @@
 import tkinter as tk
-from tkinter import simpledialog, messagebox, ttk
+from tkinter import  messagebox, ttk
 from ui.project_view import ProjectView
 from ui.project_details import ProjectDetailsForm
 from ui.dialogs import ask_new_project_info
+from ui.project_team_view import ProjectTeamView 
 
 class MainWindow(tk.Tk):
     def __init__(self, db):
@@ -104,18 +105,20 @@ class MainWindow(tk.Tk):
 
     def load_project_tabs(self, project):
         self.clear_content()
-        
-        # Create Notebook (Tabs)
         notebook = ttk.Notebook(self.content_area)
         notebook.pack(fill="both", expand=True)
 
-        # Tab 1: Kanban Board
+        # Existing Tabs
         board_frame = ProjectView(notebook, self.db, project)
         notebook.add(board_frame, text="  Kanban Board  ")
 
-        # Tab 2: Project Description
         details_frame = ProjectDetailsForm(notebook, self.db, project)
         notebook.add(details_frame, text="  Project Description  ")
+
+        # NEW: Project Team Tab
+   # We will create this next
+        team_tab = ProjectTeamView(notebook, self.db, project)
+        notebook.add(team_tab, text="  Project Team  ")
 
     def show_team_view(self):
         self.sub_sidebar.pack_forget() 

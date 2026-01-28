@@ -52,6 +52,16 @@ class Database:
             )
         """)
         self.conn.commit()
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS project_team (
+            project_id INTEGER,
+            employee_id INTEGER,
+            PRIMARY KEY (project_id, employee_id),
+            FOREIGN KEY (project_id) REFERENCES projects (id),
+            FOREIGN KEY (employee_id) REFERENCES employees (id)
+        )
+    """)
+        self.conn.commit()
 
     def create_project(self, data):
         try:
@@ -195,6 +205,27 @@ class Database:
             UPDATE tasks SET title = ?, description = ? WHERE id = ?
         """, (title, description, task_id))
         self.conn.commit()
+
+        # Inside database.py
+    def add_member_to_project(self, project_id, employee_id):
+        cursor = self.conn.cursor()
+        try:
+            cursor.execute("INSERT INTO project_team (project_id, employee_id) VALUES (?, ?)", 
+                        (project_id, employee_id))
+            self.conn.commit()
+        except sqlite3.IntegrityError:
+            pass # Member already in project
+
+    def get_project_team(self, project_id):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT e.* FROM employees e
+            JOIN project_team pt ON e.id = pt.employee_id
+            WHERE pt.project_id = ?
+        """, (project_id,))
+        rows = cursor.fetchall()
+        return [Employee(row['id'], row['emp_code'], row['name'], row['doj'], 
+                        row['designation'], row['email'], row['github']) for row in rows]
 
     def close(self):
         self.conn.close()
