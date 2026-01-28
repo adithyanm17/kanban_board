@@ -22,14 +22,17 @@ class Database:
             )
         """)
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS tasks (
+            ALTER TABLE tasks ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        """) # Note: This might fail if the column exists; use a try/except or check if exists.
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS task_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                project_id INTEGER NOT NULL,
-                title TEXT NOT NULL,
-                description TEXT,
-                status TEXT NOT NULL,
-                sort_order INTEGER NOT NULL,
-                FOREIGN KEY (project_id) REFERENCES projects (id)
+                task_id INTEGER,
+                from_status TEXT,
+                to_status TEXT,
+                move_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (task_id) REFERENCES tasks (id)
             )
         """)
                 # Inside database.py -> create_tables()
@@ -99,10 +102,24 @@ class Database:
 
     def update_task_status_and_order(self, task_id, new_status, new_order, peer_tasks_to_update):
         cursor = self.conn.cursor()
+        
+        # Get current status before moving for history logging
+        cursor.execute("SELECT status FROM tasks WHERE id = ?", (task_id,))
+        old_status = cursor.fetchone()[0]
+        
+        # Update the task
         cursor.execute(
             "UPDATE tasks SET status = ?, sort_order = ? WHERE id = ?",
             (new_status, new_order, task_id)
         )
+        
+        # Log to history if the status actually changed
+        if old_status != new_status:
+            cursor.execute(
+                "INSERT INTO task_history (task_id, from_status, to_status) VALUES (?, ?, ?)",
+                (task_id, old_status, new_status)
+            )
+            
         for t_id, t_order in peer_tasks_to_update:
             cursor.execute("UPDATE tasks SET sort_order = ? WHERE id = ?", (t_order, t_id))
         self.conn.commit()

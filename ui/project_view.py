@@ -3,7 +3,6 @@ from ui.column import KanbanColumn
 from ui.dialogs import ask_new_task_info
 
 class ProjectView(tk.Frame):
-    # Columns definition
     COLUMNS = ["Backlog", "Todo", "WIP", "Testing", "Done", "Approved"]
     COLORS = ["#fdf4f5", "#f0f4f8", "#fff9c4", "#e1f5fe", "#e8f5e9", "#dcedc8"]
 
@@ -17,18 +16,15 @@ class ProjectView(tk.Frame):
         self.refresh_board()
 
     def setup_board(self):
-        # Toolbar
         toolbar = tk.Frame(self, height=40)
         toolbar.pack(fill="x", side="top", pady=(0, 10))
         tk.Label(toolbar, text=f"Project: {self.project.name}", font=("Arial", 16, "bold")).pack(side="left")
         tk.Button(toolbar, text="+ Add Task", bg="#4CAF50", fg="white", command=self.add_task_action).pack(side="right")
 
-        # Board Area
         board_frame = tk.Frame(self)
         board_frame.pack(fill="both", expand=True)
 
         for i, col_name in enumerate(self.COLUMNS):
-            # Removed approve_task and reject_task callbacks
             col = KanbanColumn(
                 board_frame, 
                 col_name, 
@@ -54,7 +50,6 @@ class ProjectView(tk.Frame):
             for task in tasks:
                 col_widget.add_task(task)
 
-    # --- Drag and Drop Logic ---
     def on_card_drag_start(self, card):
         self.dragging_card = card
 
@@ -65,7 +60,6 @@ class ProjectView(tk.Frame):
             old_status = card.task.status
             new_status = target_column.status
             
-            # --- Enforce Workflow Constraints ---
             try:
                 old_idx = self.COLUMNS.index(old_status)
                 new_idx = self.COLUMNS.index(new_status)
@@ -79,7 +73,6 @@ class ProjectView(tk.Frame):
                 allowed = True # Reorder
             elif new_idx == old_idx + 1:
                 allowed = True # Next Stage
-            # --- UPDATE THIS CONDITION ---
             elif (old_status == "Done" or old_status == "Approved") and new_status == "Backlog":
                 allowed = True # Reject/Redo
             
@@ -87,17 +80,14 @@ class ProjectView(tk.Frame):
                 insert_index = target_column.get_card_at_y(y_root)
                 self.move_task_in_db(card.task, new_status, insert_index)
             else:
-                # Add a message box or print for debugging
                 print(f"Movement rejected: Cannot move from {old_status} to {new_status}")
         
         self.dragging_card = None
 
     def move_task_in_db(self, task, new_status, insert_index):
-        # Handle reordering logic in DB
         peer_tasks_to_update = []
         current_tasks = self.db.get_tasks_by_status(self.project.id, new_status)
         
-        # Filter out the task itself if it's already in this list (for reordering same col)
         current_tasks = [t for t in current_tasks if t.id != task.id]
 
         new_order = 0
