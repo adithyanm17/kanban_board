@@ -53,6 +53,16 @@ class Database:
         """)
         self.conn.commit()
         cursor.execute("""
+    CREATE TABLE IF NOT EXISTS task_assignments (
+        task_id INTEGER,
+        employee_id INTEGER,
+        PRIMARY KEY (task_id, employee_id),
+        FOREIGN KEY (task_id) REFERENCES tasks (id),
+        FOREIGN KEY (employee_id) REFERENCES employees (id)
+        )
+    """)
+        self.conn.commit()
+        cursor.execute("""
         CREATE TABLE IF NOT EXISTS project_team (
             project_id INTEGER,
             employee_id INTEGER,
@@ -137,6 +147,27 @@ class Database:
         for t_id, t_order in peer_tasks_to_update:
             cursor.execute("UPDATE tasks SET sort_order = ? WHERE id = ?", (t_order, t_id))
         self.conn.commit()
+    # Inside database.py
+
+    def assign_employee_to_task(self, task_id, employee_id):
+        cursor = self.conn.cursor()
+        try:
+            cursor.execute("INSERT INTO task_assignments (task_id, employee_id) VALUES (?, ?)", 
+                        (task_id, employee_id))
+            self.conn.commit()
+        except sqlite3.IntegrityError:
+            pass # Already assigned
+
+    def get_task_assignees(self, task_id):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT e.name FROM employees e
+            JOIN task_assignments ta ON e.id = ta.employee_id
+            WHERE ta.task_id = ?
+        """, (task_id,))
+        # Returns a list of names like ["Adith", "John"]
+        return [row[0] for row in cursor.fetchall()]
+
     def save_employee(self, data):
         cursor = self.conn.cursor()
         cursor.execute("""

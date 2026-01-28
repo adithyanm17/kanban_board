@@ -34,16 +34,24 @@ class TaskCard(tk.Frame):
             lbl_log = tk.Label(self, text=log_text, font=("Arial", 7, "italic"), 
                             bg="white", fg="#2196F3", anchor="w", justify="left")
             lbl_log.pack(fill="x", padx=5, pady=(2, 5))
+        assignees = self.db.get_task_assignees(self.task.id)
+        if assignees:
+            names_text = "Assignees: " + ", ".join(assignees)
+            lbl_assignees = tk.Label(self, text=names_text, font=("Arial", 8, "bold"), 
+                                    bg="white", fg="#4CAF50", anchor="w", wraplength=200)
+            lbl_assignees.pack(fill="x", padx=5, pady=(2, 5))
+
     def on_edit(self, event):
-        # Re-use the creation dialog but treat it as an edit
-        dialog = CreateTaskDialog(self) 
-        # Pre-fill current data
+        from ui.dialogs import CreateTaskDialog
+        dialog = CreateTaskDialog(self)
         dialog.title_entry.insert(0, self.task.title)
         dialog.desc_text.insert("1.0", self.task.description)
         
-        if dialog.title_str: # If user clicked OK
+        # Optional: Add a simple Listbox or Checkbuttons here to select employees
+        # For now, let's trigger the save
+        if dialog.title_str:
             self.db.update_task_details(self.task.id, dialog.title_str, dialog.desc_str)
-            # Trigger a board refresh through the parent ProjectView
+            # To add an employee, you can call self.db.assign_employee_to_task(self.task.id, selected_id)
             self.master.master.master.master.refresh_board()
 
     def bind_events(self, widget):
