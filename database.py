@@ -257,6 +257,19 @@ class Database:
         rows = cursor.fetchall()
         return [Employee(row['id'], row['emp_code'], row['name'], row['doj'], 
                         row['designation'], row['email'], row['github']) for row in rows]
+    def get_project_team_with_counts(self, project_id):
+        """Fetches employees in a project and the number of tasks assigned to them."""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT e.id, e.emp_code, e.name, e.designation,
+                (SELECT COUNT(*) FROM task_assignments ta 
+                    JOIN tasks t ON ta.task_id = t.id
+                    WHERE ta.employee_id = e.id AND t.project_id = ?) as task_count
+            FROM employees e
+            JOIN project_team pt ON e.id = pt.employee_id
+            WHERE pt.project_id = ?
+        """, (project_id, project_id))
+        return cursor.fetchall()
 
     def close(self):
         self.conn.close()

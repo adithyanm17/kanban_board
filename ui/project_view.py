@@ -39,17 +39,15 @@ class ProjectView(tk.Frame):
             self.column_widgets[col_name] = col
 
     def add_task_action(self):
-    # 1. Fetch team members for the project
-        team_members = self.db.get_project_team(self.project.id)
+        team_members = self.db.get_employees()
         
-        # 2. Call the helper (it now returns 3 items: title, desc, and member_ids)
+        from ui.dialogs import ask_new_task_info
         title, desc, member_ids = ask_new_task_info(self, team_members=team_members)
         
         if title:
-            # 3. Create the task
             new_task = self.db.create_task(self.project.id, title, desc, "Backlog")
             
-            # 4. Save the assignments for each checked employee
+            # Save assignments for every checked employee
             if member_ids:
                 for emp_id in member_ids:
                     self.db.assign_employee_to_task(new_task.id, emp_id)

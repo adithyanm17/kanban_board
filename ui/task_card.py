@@ -36,6 +36,8 @@ class TaskCard(tk.Frame):
                             justify="left", wraplength=230) # Wraps text if too long
             lbl_log.pack(fill="x", padx=5, pady=(2, 5))
         assignees = self.db.get_task_assignees(self.task.id)
+        assignees = self.db.get_task_assignees(self.task.id) #
+
         if assignees:
             names_text = "Assignees: " + ", ".join(assignees)
             lbl_assignees = tk.Label(self, text=names_text, font=("Arial", 8, "bold"), 
