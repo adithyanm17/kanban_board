@@ -48,10 +48,8 @@ class KanbanColumn(tk.Frame):
         self.canvas.itemconfig(self.canvas_window, width=event.width)
 
     def bind_mouse_wheel(self, widget):
-        """Recursively bind mouse wheel to a widget and its children."""
+        """Bind mouse wheel only to major containers to prevent event lag."""
         widget.bind("<MouseWheel>", self.on_mousewheel)
-        for child in widget.winfo_children():
-            self.bind_mouse_wheel(child)
 
     def on_mousewheel(self, event):
         """Scroll the canvas vertically based on mouse wheel movement."""
@@ -65,13 +63,11 @@ class KanbanColumn(tk.Frame):
         self.cards = []
 
     def add_task(self, task):
-        """Create and display a TaskCard within this column."""
+        """Create and display a TaskCard."""
         card = TaskCard(self.card_container, self.db, task, self.drag_start_cb, self.drag_end_cb)
         card.pack(fill="x", pady=5, padx=10)
         self.cards.append(card)
-        # Re-bind mouse wheel to the new card so it doesn't block scrolling
-        self.bind_mouse_wheel(card)
-
+        
     def get_card_at_y(self, y_root):
         """Determine where to insert a dropped card based on Y coordinates."""
         container_y_root = self.card_container.winfo_rooty()

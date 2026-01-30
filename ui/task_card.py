@@ -66,15 +66,26 @@ class TaskCard(tk.Frame):
         widget.bind("<Double-Button-1>", self.on_edit) # Add this line
 
     def on_drag_start(self, event):
+        # Store the initial click position relative to the card
+        self._drag_data = {"x": event.x, "y": event.y}
+        
+        # Create a drag placeholder window
         self.drag_window = tk.Toplevel(self)
         self.drag_window.overrideredirect(True) 
         self.drag_window.attributes('-alpha', 0.6)
+        # Ensure it stays on top without blocking main loop
+        self.drag_window.attributes("-topmost", True)
         
-        placeholder_frame = tk.Frame(self.drag_window, bg=self["bg"], bd=self["bd"], relief=self["relief"])
+        # Visual copy of the card
+        placeholder_frame = tk.Frame(self.drag_window, bg="white", bd=1, relief="solid")
         placeholder_frame.pack(fill="both", expand=True)
-        tk.Label(placeholder_frame, text=self.task.title, font=("Arial", 10, "bold"), bg="white", anchor="w").pack(fill="x", padx=5, pady=5)
+        tk.Label(placeholder_frame, text=self.task.title, font=("Arial", 10, "bold"), 
+                 bg="white", wraplength=200).pack(padx=5, pady=5)
         
-        self.drag_window.geometry(f"{self.winfo_width()}x{self.winfo_height()}+{event.x_root}+{event.y_root}")
+        # Move window to mouse position instantly
+        self.drag_window.geometry(f"+{event.x_root}+{event.y_root}")
+        
+        # Notify ProjectView immediately
         self.drag_start_callback(self)
 
     def on_drag_motion(self, event):
