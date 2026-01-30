@@ -16,33 +16,35 @@ class TaskCard(tk.Frame):
             self.bind_events(child)
 
     def setup_ui(self):
-        # 1. Title
-        tk.Label(self, text=self.task.title, font=("Arial", 10, "bold"), 
-                 bg="white", anchor="w").pack(fill="x", padx=5, pady=(5, 2))
+        # Container padding ensures content doesn't touch the borders
+        self.container = tk.Frame(self, bg="white", padx=5, pady=5)
+        self.container.pack(fill="both", expand=True)
+
+        # 1. Title - Allow wrapping for long titles
+        tk.Label(self.container, text=self.task.title, font=("Arial", 10, "bold"), 
+                 bg="white", anchor="w", justify="left", wraplength=220).pack(fill="x", pady=(0, 2))
         
-        # 2. Description
+        # 2. Description - wraplength prevents horizontal overflow
         if self.task.description:
-            tk.Label(self, text=self.task.description, font=("Arial", 9), 
+            tk.Label(self.container, text=self.task.description, font=("Arial", 9), 
                      bg="white", fg="gray", anchor="w", justify="left", 
-                     width=25).pack(fill="x", padx=5)
+                     wraplength=220).pack(fill="x")
 
         # 3. Transfer History Logic
         history = self.db.get_latest_move(self.task.id)
         if history:
             from_col, move_date = history
-            log_text = f"Transferred from {from_col} on {move_date}"
-            lbl_log = tk.Label(self, text=log_text, font=("Arial", 7, "italic"), 
-                            bg="white", fg="#2196F3", anchor="w", 
-                            justify="left", wraplength=230) # Wraps text if too long
-            lbl_log.pack(fill="x", padx=5, pady=(2, 5))
-        assignees = self.db.get_task_assignees(self.task.id)
-        assignees = self.db.get_task_assignees(self.task.id) #
+            log_text = f"Transferred from {from_col}\non {move_date}"
+            tk.Label(self.container, text=log_text, font=("Arial", 7, "italic"), 
+                     bg="white", fg="#2196F3", anchor="w", justify="left").pack(fill="x", pady=(5, 0))
 
+        # 4. Assigned Employees Display
+        assignees = self.db.get_task_assignees(self.task.id)
         if assignees:
             names_text = "Assignees: " + ", ".join(assignees)
-            lbl_assignees = tk.Label(self, text=names_text, font=("Arial", 8, "bold"), 
-                                    bg="white", fg="#4CAF50", anchor="w", wraplength=200)
-            lbl_assignees.pack(fill="x", padx=5, pady=(2, 5))
+            tk.Label(self.container, text=names_text, font=("Arial", 8, "bold"), 
+                     bg="white", fg="#4CAF50", anchor="w", justify="left", 
+                     wraplength=220).pack(fill="x", pady=(5, 0))
 
     def on_edit(self, event):
         from ui.dialogs import CreateTaskDialog
