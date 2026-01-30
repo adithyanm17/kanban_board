@@ -4,41 +4,85 @@ from tkinter import simpledialog
 class CreateTaskDialog(simpledialog.Dialog):
     def __init__(self, parent, team_members=None):
         self.team_members = team_members or [] # List of Employee objects
-        self.selected_member_ids = []
+        self.check_vars = {} # Stores BooleanVar for each employee ID
+        self.member_frames = {} # Stores UI frames for filtering
         self.title_str = None
         self.desc_str = None
+        self.selected_member_ids = []
         super().__init__(parent, title="Create New Task")
 
     def body(self, master):
-        self.geometry("400x500")
+        self.geometry("450x600")
         
+        # Task Title
         tk.Label(master, text="Title:").grid(row=0, sticky="w", pady=5)
         self.title_entry = tk.Entry(master, width=40)
         self.title_entry.grid(row=0, column=1, pady=5)
 
+        # Task Description
         tk.Label(master, text="Description:").grid(row=1, sticky="nw", pady=5)
-        self.desc_text = tk.Text(master, width=30, height=5)
+        self.desc_text = tk.Text(master, width=30, height=4)
         self.desc_text.grid(row=1, column=1, pady=5)
 
-        # Assignee Selection
-        tk.Label(master, text="Assign To:").grid(row=2, sticky="nw", pady=10)
+        # --- Searchable Checkbox List ---
+        tk.Label(master, text="Assign To:").grid(row=2, sticky="nw", pady=(10, 0))
         
-        # Using a Listbox with Multiple selection mode
-        self.member_listbox = tk.Listbox(master, selectmode="multiple", width=30, height=6)
-        self.member_listbox.grid(row=2, column=1, pady=10)
+        # Real-time Search Entry
+        self.search_var = tk.StringVar()
+        self.search_var.trace_add("write", self.filter_employees)
+        search_entry = tk.Entry(master, textvariable=self.search_var, width=40)
+        search_entry.insert(0, "Search employees...")
+        search_entry.bind("<FocusIn>", lambda e: search_entry.delete(0, tk.END) if self.search_var.get() == "Search employees..." else None)
+        search_entry.grid(row=3, column=1, pady=(0, 5), sticky="w")
+
+        # Scrollable Area for Checkboxes
+        list_frame = tk.Frame(master, bd=1, relief="sunken")
+        list_frame.grid(row=4, column=1, sticky="nsew")
         
+        canvas = tk.Canvas(list_frame, width=250, height=150)
+        scrollbar = tk.Scrollbar(list_frame, orient="vertical", command=canvas.yview)
+        self.scrollable_frame = tk.Frame(canvas)
+
+        self.scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        # Populate Employee Checkboxes
         for member in self.team_members:
-            self.member_listbox.insert(tk.END, f"{member.name} ({member.emp_code})")
+            var = tk.BooleanVar()
+            self.check_vars[member.id] = var
+            
+            f = tk.Frame(self.scrollable_frame)
+            f.pack(fill="x", anchor="w")
+            
+            cb = tk.Checkbutton(f, text=f"{member.name} ({member.emp_code})", variable=var)
+            cb.pack(side="left")
+            
+            # Store search metadata
+            self.member_frames[member.id] = (f, member.name.lower(), member.emp_code.lower())
 
         return self.title_entry
+
+    def filter_employees(self, *args):
+        """Filters the checkbox list as the user types."""
+        query = self.search_var.get().lower()
+        if query == "search employees...": return
+        
+        for emp_id, (frame, name, code) in self.member_frames.items():
+            if query in name or query in code:
+                frame.pack(fill="x", anchor="w")
+            else:
+                frame.pack_forget()
 
     def apply(self):
         self.title_str = self.title_entry.get()
         self.desc_str = self.desc_text.get("1.0", tk.END).strip()
-        
-        # Get IDs of selected members
-        selected_indices = self.member_listbox.curselection()
-        self.selected_member_ids = [self.team_members[i].id for i in selected_indices]
+        # Collect all checked IDs
+        self.selected_member_ids = [m_id for m_id, var in self.check_vars.items() if var.get()]
+
 
 class CreateProjectDialog(simpledialog.Dialog):
     def __init__(self, parent):
@@ -46,50 +90,33 @@ class CreateProjectDialog(simpledialog.Dialog):
         super().__init__(parent, title="New Project Details")
 
     def body(self, master):
-        # 1. Make the dialog bigger
-        self.geometry("500x500") 
+        self.geometry("500x550") 
+        fields = [
+            ("Project Name:", "name"),
+            ("Customer Name:", "customer"),
+            ("Estimated Time:", "estimated_time"),
+            ("Planned Date (YYYY-MM-DD):", "start_date"),
+            ("End Date (YYYY-MM-DD):", "end_date")
+        ]
+        
+        self.entries = {}
+        for i, (label, key) in enumerate(fields):
+            tk.Label(master, text=label).grid(row=i*2, column=0, sticky="w", pady=2)
+            entry = tk.Entry(master, width=50)
+            entry.grid(row=i*2+1, column=0, columnspan=2, pady=(0, 10))
+            self.entries[key] = entry
 
-        # 2. Project Name
-        tk.Label(master, text="Project Name:").grid(row=0, sticky=tk.W, pady=5)
-        self.name_entry = tk.Entry(master, width=50)
-        self.name_entry.grid(row=0, column=1, pady=5)
+        tk.Label(master, text="Description:").grid(row=10, column=0, sticky="nw")
+        self.desc_text = tk.Text(master, width=50, height=5)
+        self.desc_text.grid(row=11, column=0, columnspan=2, pady=(0, 10))
 
-        # 3. Description - FIXED LINE BELOW (tk.NW)
-        tk.Label(master, text="Description:").grid(row=1, sticky=tk.NW, pady=5)
-        self.desc_text = tk.Text(master, width=50, height=6)
-        self.desc_text.grid(row=1, column=1, pady=5)
-
-        # 4. Customer Name
-        tk.Label(master, text="Customer Name:").grid(row=2, sticky=tk.W, pady=5)
-        self.customer_entry = tk.Entry(master, width=50)
-        self.customer_entry.grid(row=2, column=1, pady=5)
-
-        # 5. Estimated Time
-        tk.Label(master, text="Estimated Time:").grid(row=3, sticky=tk.W, pady=5)
-        self.time_entry = tk.Entry(master, width=50)
-        self.time_entry.grid(row=3, column=1, pady=5)
-
-        # 6. Planned Date
-        tk.Label(master, text="Planned Date (YYYY-MM-DD):").grid(row=4, sticky=tk.W, pady=5)
-        self.start_date_entry = tk.Entry(master, width=50)
-        self.start_date_entry.grid(row=4, column=1, pady=5)
-
-        # 7. End Date
-        tk.Label(master, text="End Date (YYYY-MM-DD):").grid(row=5, sticky=tk.W, pady=5)
-        self.end_date_entry = tk.Entry(master, width=50)
-        self.end_date_entry.grid(row=5, column=1, pady=5)
-
-        return self.name_entry
+        return self.entries["name"]
 
     def apply(self):
-        self.result_data = {
-            "name": self.name_entry.get(),
-            "description": self.desc_text.get("1.0", tk.END).strip(),
-            "customer": self.customer_entry.get(),
-            "estimated_time": self.time_entry.get(),
-            "start_date": self.start_date_entry.get(),
-            "end_date": self.end_date_entry.get()
-        }
+        self.result_data = {k: v.get() for k, v in self.entries.items()}
+        self.result_data["description"] = self.desc_text.get("1.0", tk.END).strip()
+
+
 class EmployeeDialog(simpledialog.Dialog):
     def __init__(self, parent, title, employee=None):
         self.employee = employee
@@ -119,9 +146,13 @@ class EmployeeDialog(simpledialog.Dialog):
 
     def apply(self):
         self.result_data = {k: v.get() for k, v in self.entries.items()}
-def ask_new_task_info(parent):
-    dialog = CreateTaskDialog(parent)
-    return dialog.title_str, dialog.desc_str
+
+
+# --- Helper Functions (Required by other modules) ---
+
+def ask_new_task_info(parent, team_members=None):
+    dialog = CreateTaskDialog(parent, team_members=team_members)
+    return dialog.title_str, dialog.desc_str, dialog.selected_member_ids
 
 def ask_new_project_info(parent):
     dialog = CreateProjectDialog(parent)

@@ -39,22 +39,22 @@ class ProjectView(tk.Frame):
             self.column_widgets[col_name] = col
 
     def add_task_action(self):
-        # 1. Fetch the team members assigned to THIS project
+    # 1. Fetch team members for the project
         team_members = self.db.get_project_team(self.project.id)
         
-        # 2. Open dialog with team list
-        from ui.dialogs import CreateTaskDialog
-        dialog = CreateTaskDialog(self, team_members=team_members)
+        # 2. Call the helper (it now returns 3 items: title, desc, and member_ids)
+        title, desc, member_ids = ask_new_task_info(self, team_members=team_members)
         
-        if dialog.title_str:
+        if title:
             # 3. Create the task
-            new_task = self.db.create_task(self.project.id, dialog.title_str, dialog.desc_str, "Backlog")
+            new_task = self.db.create_task(self.project.id, title, desc, "Backlog")
             
-            # 4. Save the assignments
-            for emp_id in dialog.selected_member_ids:
-                self.db.assign_employee_to_task(new_task.id, emp_id)
+            # 4. Save the assignments for each checked employee
+            if member_ids:
+                for emp_id in member_ids:
+                    self.db.assign_employee_to_task(new_task.id, emp_id)
                 
-            self.refresh_board() # Refresh to show names on the card
+            self.refresh_board()
 
     def refresh_board(self):
         for col_name, col_widget in self.column_widgets.items():

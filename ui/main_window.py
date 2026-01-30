@@ -4,7 +4,7 @@ from ui.project_view import ProjectView
 from ui.project_details import ProjectDetailsForm
 from ui.dialogs import ask_new_project_info
 from ui.project_team_view import ProjectTeamView 
-
+from ui.dialogs import ask_new_project_info, CreateProjectDialog
 class MainWindow(tk.Tk):
     def __init__(self, db):
         super().__init__()

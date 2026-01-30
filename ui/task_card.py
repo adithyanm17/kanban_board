@@ -30,9 +30,10 @@ class TaskCard(tk.Frame):
         history = self.db.get_latest_move(self.task.id)
         if history:
             from_col, move_date = history
-            log_text = f"Transferred from {from_col}\non {move_date}" # Added \n for line break
+            log_text = f"Transferred from {from_col} on {move_date}"
             lbl_log = tk.Label(self, text=log_text, font=("Arial", 7, "italic"), 
-                            bg="white", fg="#2196F3", anchor="w", justify="left")
+                            bg="white", fg="#2196F3", anchor="w", 
+                            justify="left", wraplength=230) # Wraps text if too long
             lbl_log.pack(fill="x", padx=5, pady=(2, 5))
         assignees = self.db.get_task_assignees(self.task.id)
         if assignees:
