@@ -70,15 +70,14 @@ class KanbanColumn(tk.Frame):
         self.cards.append(card)
         
     def get_card_at_y(self, y_root):
-        """Determine where to insert a dropped card based on Y coordinates."""
-        container_y_root = self.card_container.winfo_rooty()
-        relative_y = y_root - container_y_root
+    # Convert root Y to canvas Y (accounting for scrolling)
+        canvas_y = self.canvas.canvasy(y_root - self.canvas.winfo_rooty())
         
         cumulative_y = 0
         for i, card in enumerate(self.cards):
             card_height = card.winfo_height()
-            if relative_y < cumulative_y + card_height / 2:
+            # Use a threshold to find the insertion gap
+            if canvas_y < cumulative_y + (card_height / 2):
                 return i 
-            cumulative_y += card_height + 10 
-            
+            cumulative_y += card_height + 5 
         return len(self.cards)

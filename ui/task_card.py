@@ -81,7 +81,7 @@ class TaskCard(tk.Frame):
         # 2. Create the ghost window instantly
         self.drag_window = tk.Toplevel(self)
         self.drag_window.overrideredirect(True)
-        self.drag_window.attributes("-alpha", 0.6, "-topmost", True)
+        self.drag_window.attributes("-topmost", True)
         
         # 3. Use a single label instead of copying the whole frame for speed
         p_frame = tk.Frame(self.drag_window, bg="#2196F3", bd=1, relief="solid")
@@ -94,10 +94,13 @@ class TaskCard(tk.Frame):
         self.drag_start_callback(self)
 
     def on_drag_motion(self, event):
-        # Move the window using raw coordinates for 'instant' response
         if hasattr(self, 'drag_window'):
-            # This is the fastest way to move a window in Tkinter
-            self.drag_window.geometry(f"+{event.x_root - self._drag_data['x']}+{event.y_root - self._drag_data['y']}")
+            # Calculate new position
+            x = event.x_root - self._drag_data['x']
+            y = event.y_root - self._drag_data['y']
+            self.drag_window.geometry(f"+{x}+{y}")
+            # Force redraw to remove 'ghosting' lag
+            self.drag_window.update_idletasks()
     def on_drag_stop(self, event):
         if hasattr(self, 'drag_window'):
             self.drag_window.destroy()
