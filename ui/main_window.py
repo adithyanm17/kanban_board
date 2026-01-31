@@ -1,17 +1,20 @@
 import tkinter as tk
-from tkinter import  messagebox, ttk
+from tkinter import messagebox, ttk
 from ui.project_view import ProjectView
 from ui.project_details import ProjectDetailsForm
-from ui.dialogs import ask_new_project_info
 from ui.project_team_view import ProjectTeamView 
-from ui.dialogs import ask_new_project_info, CreateProjectDialog
+from ui.dialogs import ask_new_project_info
+
 class MainWindow(tk.Tk):
     def __init__(self, db):
         super().__init__()
         self.db = db
         self.title("Python Kanban App")
         self.geometry("1200x700")
-        self.current_content = None
+        
+        # State variables for project list
+        self.all_projects = []
+        self.filtered_projects = []
         
         self.setup_layout()
         self.show_projects_view() # Default view
@@ -25,9 +28,8 @@ class MainWindow(tk.Tk):
         self.create_nav_button("Team", self.show_team_view)
         self.create_nav_button("Settings", self.show_settings_view)
 
-        # 2. Sub-Sidebar (For Project List) - Initially hidden or shown based on context
+        # 2. Sub-Sidebar (For Project List)
         self.sub_sidebar = tk.Frame(self, width=200, bg="#e0e0e0")
-        # We pack it later when needed
 
         # 3. Main Content Area
         self.content_area = tk.Frame(self, bg="white")
@@ -52,30 +54,46 @@ class MainWindow(tk.Tk):
         for widget in self.sub_sidebar.winfo_children():
             widget.destroy()
 
-        # Build Project List UI
-        tk.Label(self.sub_sidebar, text="Projects", font=("Arial", 14), bg="#e0e0e0", pady=10).pack()
-        btn_new_proj = tk.Button(self.sub_sidebar, text="+ New Project", command=self.create_project, bg="white")
+        tk.Label(self.sub_sidebar, text="Projects", font=("Arial", 14, "bold"), bg="#e0e0e0", pady=10).pack()
+
+        # --- Search Bar ---
+        search_frame = tk.Frame(self.sub_sidebar, bg="#e0e0e0")
+        search_frame.pack(fill="x", padx=10, pady=5)
+        
+        self.project_search_var = tk.StringVar()
+        self.project_search_var.trace_add("write", self.filter_projects)
+        
+        search_entry = tk.Entry(search_frame, textvariable=self.project_search_var, font=("Arial", 10))
+        search_entry.pack(fill="x")
+        search_entry.insert(0, "Search projects...")
+        
+        # Clear placeholder logic
+        search_entry.bind("<FocusIn>", lambda e: search_entry.delete(0, tk.END) if self.project_search_var.get() == "Search projects..." else None)
+        search_entry.bind("<FocusOut>", lambda e: search_entry.insert(0, "Search projects...") if not self.project_search_var.get() else None)
+
+        # New Project Button
+        btn_new_proj = tk.Button(self.sub_sidebar, text="+ New Project", command=self.create_project, bg="white", relief="flat")
         btn_new_proj.pack(fill="x", padx=10, pady=5)
 
-        self.project_list_box = tk.Listbox(self.sub_sidebar, bg="#e0e0e0", bd=0, highlightthickness=0, font=("Arial", 11))
+        # Listbox for Projects
+        self.project_list_box = tk.Listbox(self.sub_sidebar, bg="#e0e0e0", bd=0, highlightthickness=0, font=("Arial", 11), selectbackground="#bbdefb")
         self.project_list_box.pack(fill="both", expand=True, padx=10, pady=10)
         self.project_list_box.bind("<<ListboxSelect>>", self.on_project_select)
 
         self.refresh_project_list()
         
-        # Default content if no project selected
         self.clear_content()
         tk.Label(self.content_area, text="Select a project to view details", font=("Arial", 14), fg="gray", bg="white").pack(expand=True)
 
     def show_team_view(self):
         self.sub_sidebar.pack_forget() 
         self.clear_content()
-        from ui.team_view import TeamView # Import here or at top
+        from ui.team_view import TeamView
         team_frame = TeamView(self.content_area, self.db)
         team_frame.pack(fill="both", expand=True)
 
     def show_settings_view(self):
-        self.sub_sidebar.pack_forget() # Hide project list
+        self.sub_sidebar.pack_forget()
         self.clear_content()
         tk.Label(self.content_area, text="Settings (Coming Soon)", font=("Arial", 20), bg="white").pack(expand=True)
 
@@ -91,16 +109,37 @@ class MainWindow(tk.Tk):
                 messagebox.showerror("Error", "Project name already exists.")
 
     def refresh_project_list(self):
-        self.projects = self.db.get_projects()
+        """Fetches all projects and triggers the filter/display logic."""
+        self.all_projects = self.db.get_projects()
+        self.filter_projects()
+
+    def filter_projects(self, *args):
+        """Filters the project list based on search input."""
+        # SAFETY CHECK: If the listbox hasn't been created yet, exit the function
+        if not hasattr(self, 'project_list_box'):
+            return
+
+        query = self.project_search_var.get().lower()
+        if query == "search projects...":
+            query = ""
+
         self.project_list_box.delete(0, tk.END)
-        for p in self.projects:
+        
+        # Filter logic: Check name and customer
+        self.filtered_projects = [
+            p for p in self.all_projects 
+            if query in p.name.lower() or (p.customer and query in p.customer.lower())
+        ]
+
+        for p in self.filtered_projects:
             self.project_list_box.insert(tk.END, p.name)
 
     def on_project_select(self, event):
         selection = self.project_list_box.curselection()
         if selection:
             index = selection[0]
-            project = self.projects[index]
+            # Use filtered_projects to ensure correct index mapping
+            project = self.filtered_projects[index]
             self.load_project_tabs(project)
 
     def load_project_tabs(self, project):
@@ -108,21 +147,17 @@ class MainWindow(tk.Tk):
         notebook = ttk.Notebook(self.content_area)
         notebook.pack(fill="both", expand=True)
 
-        # Existing Tabs
+        # Tab 1: Kanban Board
         board_frame = ProjectView(notebook, self.db, project)
         notebook.add(board_frame, text="  Kanban Board  ")
 
+        # Tab 2: Project Details
         details_frame = ProjectDetailsForm(notebook, self.db, project)
         notebook.add(details_frame, text="  Project Description  ")
 
-        # NEW: Project Team Tab
-   # We will create this next
+        # Tab 3: Team Load
         team_tab = ProjectTeamView(notebook, self.db, project)
         notebook.add(team_tab, text="  Project Team  ")
 
-    def show_team_view(self):
-        self.sub_sidebar.pack_forget() 
-        self.clear_content()
-        from ui.team_view import TeamView # Import here or at top
-        team_frame = TeamView(self.content_area, self.db)
-        team_frame.pack(fill="both", expand=True)
+    def close(self):
+        self.db.close()
