@@ -64,7 +64,7 @@ class KanbanColumn(tk.Frame):
         self.cards = []
 
     def add_task(self, task):
-        """Create and display a TaskCard."""
+        # Create the card normally
         card = TaskCard(self.card_container, self.db, task, self.drag_start_cb, self.drag_end_cb)
         card.pack(fill="x", pady=5, padx=10)
         self.cards.append(card)

@@ -75,32 +75,29 @@ class TaskCard(tk.Frame):
         widget.bind("<Double-Button-1>", self.on_edit) # Add this line
 
     def on_drag_start(self, event):
-        # Store the initial click position relative to the card
+        # 1. Capture the offset so the card doesn't 'jump' to the cursor
         self._drag_data = {"x": event.x, "y": event.y}
         
-        # Create a drag placeholder window
+        # 2. Create the ghost window instantly
         self.drag_window = tk.Toplevel(self)
-        self.drag_window.overrideredirect(True) 
-        self.drag_window.attributes('-alpha', 0.6)
-        # Ensure it stays on top without blocking main loop
-        self.drag_window.attributes("-topmost", True)
+        self.drag_window.overrideredirect(True)
+        self.drag_window.attributes("-alpha", 0.6, "-topmost", True)
         
-        # Visual copy of the card
-        placeholder_frame = tk.Frame(self.drag_window, bg="white", bd=1, relief="solid")
-        placeholder_frame.pack(fill="both", expand=True)
-        tk.Label(placeholder_frame, text=self.task.title, font=("Arial", 10, "bold"), 
-                 bg="white", wraplength=200).pack(padx=5, pady=5)
+        # 3. Use a single label instead of copying the whole frame for speed
+        p_frame = tk.Frame(self.drag_window, bg="#2196F3", bd=1, relief="solid")
+        p_frame.pack(fill="both", expand=True)
+        tk.Label(p_frame, text=self.task.title, fg="white", 
+                 font=("Arial", 10, "bold"), wraplength=180).pack(padx=10, pady=10)
         
-        # Move window to mouse position instantly
+        # 4. Initial position
         self.drag_window.geometry(f"+{event.x_root}+{event.y_root}")
-        
-        # Notify ProjectView immediately
         self.drag_start_callback(self)
 
     def on_drag_motion(self, event):
+        # Move the window using raw coordinates for 'instant' response
         if hasattr(self, 'drag_window'):
-            self.drag_window.geometry(f"+{event.x_root}+{event.y_root}")
-
+            # This is the fastest way to move a window in Tkinter
+            self.drag_window.geometry(f"+{event.x_root - self._drag_data['x']}+{event.y_root - self._drag_data['y']}")
     def on_drag_stop(self, event):
         if hasattr(self, 'drag_window'):
             self.drag_window.destroy()
