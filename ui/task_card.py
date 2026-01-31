@@ -16,35 +16,44 @@ class TaskCard(tk.Frame):
             self.bind_events(child)
 
     def setup_ui(self):
-        # Container padding ensures content doesn't touch the borders
-        self.container = tk.Frame(self, bg="white", padx=5, pady=5)
+        # Using a main container with padding to prevent text touching borders
+        self.container = tk.Frame(self, bg="white", padx=8, pady=8)
         self.container.pack(fill="both", expand=True)
 
-        # 1. Title - Allow wrapping for long titles
-        tk.Label(self.container, text=self.task.title, font=("Arial", 10, "bold"), 
-                 bg="white", anchor="w", justify="left", wraplength=220).pack(fill="x", pady=(0, 2))
+        # 1. Title - Dynamic wrapping for long names
+        # wraplength=200 ensures text moves to a new line before hitting the edge
+        self.lbl_title = tk.Label(self.container, text=self.task.title, 
+                                  font=("Arial", 10, "bold"), bg="white", 
+                                  anchor="w", justify="left", wraplength=200)
+        self.lbl_title.pack(fill="x", pady=(0, 4))
         
-        # 2. Description - wraplength prevents horizontal overflow
+        # 2. Description - Wrap long descriptions
         if self.task.description:
-            tk.Label(self.container, text=self.task.description, font=("Arial", 9), 
-                     bg="white", fg="gray", anchor="w", justify="left", 
-                     wraplength=220).pack(fill="x")
+            self.lbl_desc = tk.Label(self.container, text=self.task.description, 
+                                     font=("Arial", 9), bg="white", fg="gray", 
+                                     anchor="w", justify="left", wraplength=200)
+            self.lbl_desc.pack(fill="x", pady=(0, 4))
 
-        # 3. Transfer History Logic
+        # 3. Transfer History - Multiline support
         history = self.db.get_latest_move(self.task.id)
         if history:
             from_col, move_date = history
             log_text = f"Transferred from {from_col}\non {move_date}"
-            tk.Label(self.container, text=log_text, font=("Arial", 7, "italic"), 
-                     bg="white", fg="#2196F3", anchor="w", justify="left").pack(fill="x", pady=(5, 0))
+            self.lbl_log = tk.Label(self.container, text=log_text, 
+                                    font=("Arial", 7, "italic"), bg="white", 
+                                    fg="#2196F3", anchor="w", justify="left")
+            self.lbl_log.pack(fill="x", pady=(4, 0))
 
-        # 4. Assigned Employees Display
+        # 4. Assigned Employees - Fix for many names
         assignees = self.db.get_task_assignees(self.task.id)
         if assignees:
             names_text = "Assignees: " + ", ".join(assignees)
-            tk.Label(self.container, text=names_text, font=("Arial", 8, "bold"), 
-                     bg="white", fg="#4CAF50", anchor="w", justify="left", 
-                     wraplength=220).pack(fill="x", pady=(5, 0))
+            # wraplength=200 allows the list of names to grow vertically
+            self.lbl_assignees = tk.Label(self.container, text=names_text, 
+                                          font=("Arial", 8, "bold"), bg="white", 
+                                          fg="#4CAF50", anchor="w", 
+                                          justify="left", wraplength=200)
+            self.lbl_assignees.pack(fill="x", pady=(6, 0))
 
     def on_edit(self, event):
         from ui.dialogs import CreateTaskDialog

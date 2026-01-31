@@ -27,7 +27,8 @@ class KanbanColumn(tk.Frame):
         self.card_container = tk.Frame(self.canvas, bg=color)
         
         # Create a window inside the canvas to hold the card_container
-        self.canvas_window = self.canvas.create_window((0, 0), window=self.card_container, anchor="nw")
+        self.canvas_window = self.canvas.create_window((0, 0), window=self.card_container, 
+                                               anchor="nw", width=220)
 
         # Configure the canvas to update its scroll region when cards are added
         self.card_container.bind("<Configure>", self.on_frame_configure)
