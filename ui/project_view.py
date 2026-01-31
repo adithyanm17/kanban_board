@@ -80,12 +80,14 @@ class ProjectView(tk.Frame):
             
             allowed = False
             
+            allowed = False
+
             if new_idx == old_idx:
-                allowed = True # Reorder
-            elif new_idx == old_idx + 1:
-                allowed = True # Next Stage
-            elif (old_status == "Done" or old_status == "Approved") and new_status == "Backlog":
-                allowed = True # Reject/Redo
+                allowed = True # Reordering within the same column
+            elif new_idx > old_idx:
+                allowed = True # Allow moving forward to ANY future stage
+            elif (old_status in ["Done", "Approved"]) and new_status == "Backlog":
+                allowed = True # Allow rejection/re-work
             
             if allowed:
                 insert_index = target_column.get_card_at_y(y_root)
