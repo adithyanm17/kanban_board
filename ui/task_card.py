@@ -23,15 +23,14 @@ class TaskCard(tk.Frame):
         # 1. Title - Dynamic wrapping for long names
         # wraplength=200 ensures text moves to a new line before hitting the edge
         self.lbl_title = tk.Label(self.container, text=self.task.title, 
-                                  font=("Arial", 10, "bold"), bg="white", 
-                                  anchor="w", justify="left", wraplength=200)
+                              font=("Arial", 10, "bold"), bg="white", 
+                              anchor="w", justify="left", wraplength=200)
         self.lbl_title.pack(fill="x", pady=(0, 4))
-        
         # 2. Description - Wrap long descriptions
         if self.task.description:
             self.lbl_desc = tk.Label(self.container, text=self.task.description, 
-                                     font=("Arial", 9), bg="white", fg="gray", 
-                                     anchor="w", justify="left", wraplength=200)
+                                    font=("Arial", 9), bg="white", fg="gray", 
+                                    anchor="w", justify="left", wraplength=200)
             self.lbl_desc.pack(fill="x", pady=(0, 4))
 
         # 3. Transfer History - Multiline support
@@ -54,6 +53,7 @@ class TaskCard(tk.Frame):
                                           fg="#4CAF50", anchor="w", 
                                           justify="left", wraplength=200)
             self.lbl_assignees.pack(fill="x", pady=(6, 0))
+        self.bind_recursive(self)
 
     def on_edit(self, event):
         from ui.dialogs import CreateTaskDialog
@@ -73,6 +73,16 @@ class TaskCard(tk.Frame):
         widget.bind("<B1-Motion>", self.on_drag_motion)
         widget.bind("<ButtonRelease-1>", self.on_drag_stop)
         widget.bind("<Double-Button-1>", self.on_edit) # Add this line
+
+    def bind_recursive(self, widget):
+        """Binds drag events to the widget and all its children."""
+        widget.bind("<ButtonPress-1>", self.on_drag_start)
+        widget.bind("<B1-Motion>", self.on_drag_motion)
+        widget.bind("<ButtonRelease-1>", self.on_drag_stop)
+        widget.bind("<Double-Button-1>", self.on_edit)
+        
+        for child in widget.winfo_children():
+            self.bind_recursive(child)
 
     def on_drag_start(self, event):
         # Calculate offset relative to the TaskCard's top-left corner
