@@ -75,17 +75,18 @@ class KanbanColumn(tk.Frame):
         widget.bind("<MouseWheel>", self.on_mousewheel)
         for child in widget.winfo_children():
             self.bind_mouse_recursive(child)
+
+
     def get_card_at_y(self, y_root):
-    # Convert global screen Y to the Y coordinate inside the canvas
-    # This accounts for how much the user has scrolled
         canvas_y = self.canvas.canvasy(y_root - self.canvas.winfo_rooty())
         
         cumulative_y = 0
         for i, card in enumerate(self.cards):
             card_height = card.winfo_height()
-            # Find if we are in the top half of the current card
+            # Use a 50% threshold: if cursor is above the midpoint, insert here
             if canvas_y < (cumulative_y + card_height / 2):
                 return i 
-            cumulative_y += card_height + 10 # 10 is the pady spacing
+            # 10 is the total padding (pady=5 top and bottom) from add_task
+            cumulative_y += card_height + 10 
             
         return len(self.cards)

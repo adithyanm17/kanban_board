@@ -75,13 +75,15 @@ class TaskCard(tk.Frame):
         widget.bind("<Double-Button-1>", self.on_edit) # Add this line
 
     def on_drag_start(self, event):
-        # 1. Capture the offset so the card doesn't 'jump' to the cursor
-        self._drag_data = {"x": event.x, "y": event.y}
-        
-        # 2. Create the ghost window instantly
+        # Calculate offset relative to the TaskCard's top-left corner
+        # regardless of which child widget was clicked.
+        self._drag_data = {
+            "x": event.x_root - self.winfo_rootx(),
+            "y": event.y_root - self.winfo_rooty()
+        }
         self.drag_window = tk.Toplevel(self)
         self.drag_window.overrideredirect(True)
-        self.drag_window.attributes("-topmost", True)
+        self.drag_window.attributes("-alpha", 0.8, "-topmost", True)
         
         # 3. Use a single label instead of copying the whole frame for speed
         p_frame = tk.Frame(self.drag_window, bg="#2196F3", bd=1, relief="solid")
@@ -94,13 +96,17 @@ class TaskCard(tk.Frame):
         self.drag_start_callback(self)
 
     def on_drag_motion(self, event):
+        """Move the ghost window with high priority redrawing."""
         if hasattr(self, 'drag_window'):
-            # Calculate new position
-            x = event.x_root - self._drag_data['x']
-            y = event.y_root - self._drag_data['y']
-            self.drag_window.geometry(f"+{x}+{y}")
-            # Force redraw to remove 'ghosting' lag
+            # Calculate new position based on original click offset
+            new_x = event.x_root - self._drag_data['x']
+            new_y = event.y_root - self._drag_data['y']
+            
+            self.drag_window.geometry(f"+{new_x}+{new_y}")
+            # Force the OS to redraw the window immediately to reduce lag
             self.drag_window.update_idletasks()
+
+
     def on_drag_stop(self, event):
         if hasattr(self, 'drag_window'):
             self.drag_window.destroy()
