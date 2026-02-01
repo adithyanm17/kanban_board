@@ -1,84 +1,107 @@
 import tkinter as tk
-from tkinter import messagebox
-from tkinter import ttk
+from tkinter import ttk, messagebox
+from tkcalendar import DateEntry # Requires: pip install tkcalendar
+
 class ProjectDetailsForm(tk.Frame):
     def __init__(self, parent, db, project):
         super().__init__(parent, bg="white")
         self.db = db
         self.project = project
+        self.widgets = {}
         self.setup_ui()
 
     def setup_ui(self):
-        # Use a canvas for scrolling if the form gets too long
-        self.canvas = tk.Canvas(self, bg="white", highlightthickness=0)
-        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
-        self.scrollable_frame = tk.Frame(self.canvas, bg="white")
+        canvas = tk.Canvas(self, bg="white", highlightthickness=0)
+        scrollbar = ttk.Scrollbar(self, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg="white")
 
-        self.scrollable_frame.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
-        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
-        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
 
-        self.canvas.pack(side="left", fill="both", expand=True)
-        self.scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
 
-        # Layout Helper
-        def create_row(parent, label_text, attr_name, row_idx, is_text=False):
-            tk.Label(parent, text=label_text, bg="white", font=("Arial", 10, "bold")).grid(row=row_idx, column=0, sticky="w", pady=5, padx=10)
-            val = getattr(self.project, attr_name) or ""
-            if is_text:
-                widget = tk.Text(parent, width=60, height=4, font=("Arial", 10), bd=1, relief="solid")
-                widget.insert("1.0", val)
+        # --- Helper for 2 Fields Per Row ---
+        def add_field(parent, label_text, attr, row, col, is_date=False):
+            frame = tk.Frame(parent, bg="white")
+            frame.grid(row=row, column=col, padx=15, pady=5, sticky="w")
+            
+            tk.Label(frame, text=label_text, bg="white", font=("Arial", 9, "bold")).pack(anchor="w")
+            val = getattr(self.project, attr) or ""
+            
+            if is_date:
+                # Standardized date entry
+                widget = DateEntry(frame, width=25, background='darkblue', 
+                                   foreground='white', borderwidth=2, date_pattern='yyyy-mm-dd')
+                if val: widget.set_date(val)
             else:
-                widget = tk.Entry(parent, width=60, font=("Arial", 10))
+                widget = tk.Entry(frame, width=28, font=("Arial", 10))
                 widget.insert(0, val)
-            widget.grid(row=row_idx, column=1, sticky="w", pady=5, padx=10)
-            return widget
+            
+            widget.pack(fill="x")
+            self.widgets[attr] = widget
 
-        # Fields Group 1: Basics
-        self.widgets = {
-            "name": create_row(self.scrollable_frame, "Project Name:", "name", 0),
-            "customer": create_row(self.scrollable_frame, "Customer:", "customer", 1),
-            "project_manager": create_row(self.scrollable_frame, "Project Manager:", "project_manager", 2),
-            "part_number": create_row(self.scrollable_frame, "Part Number:", "part_number", 3),
-            "part_name": create_row(self.scrollable_frame, "Part Name:", "part_name", 4),
-            "total_cost": create_row(self.scrollable_frame, "Est. Total Cost:", "total_cost", 5),
+        # --- Helper for Full-Width Text Areas ---
+        def add_text_area(parent, label_text, attr, row):
+            frame = tk.Frame(parent, bg="white")
+            frame.grid(row=row, column=0, columnspan=2, padx=15, pady=10, sticky="ew")
             
-            # Group 2: Documentation
-            "po_number": create_row(self.scrollable_frame, "PO Number:", "po_number", 6),
-            "wo_number": create_row(self.scrollable_frame, "Work Order No:", "wo_number", 7),
-            "po_date": create_row(self.scrollable_frame, "PO Date:", "po_date", 8),
-            "due_date": create_row(self.scrollable_frame, "Due Date:", "due_date", 9),
-            
-            # Group 3: Large Text Fields
-            "scopes": create_row(self.scrollable_frame, "Scopes:", "scopes", 10, True),
-            "out_of_scopes": create_row(self.scrollable_frame, "Out of Scopes:", "out_of_scopes", 11, True),
-            "deliverables": create_row(self.scrollable_frame, "Deliverables:", "deliverables", 12, True),
-            "description": create_row(self.scrollable_frame, "Notes/Description:", "description", 13, True),
-        }
+            tk.Label(frame, text=label_text, bg="white", font=("Arial", 9, "bold")).pack(anchor="w")
+            widget = tk.Text(frame, height=4, font=("Arial", 10), bd=1, relief="solid")
+            widget.insert("1.0", getattr(self.project, attr) or "")
+            widget.pack(fill="x")
+            self.widgets[attr] = widget
+
+        # Row 0: Basic Info
+        add_field(scrollable_frame, "Project Name:", "name", 0, 0)
+        add_field(scrollable_frame, "Customer:", "customer", 0, 1)
+
+        # Row 1: Management
+        add_field(scrollable_frame, "Project Manager:", "project_manager", 1, 0)
+        add_field(scrollable_frame, "Est. Total Cost:", "total_cost", 1, 1)
+
+        # Row 2: Parts
+        add_field(scrollable_frame, "Part Number:", "part_number", 2, 0)
+        add_field(scrollable_frame, "Part Name:", "part_name", 2, 1)
+
+        # Row 3: Orders
+        add_field(scrollable_frame, "PO Number:", "po_number", 3, 0)
+        add_field(scrollable_frame, "Work Order No:", "wo_number", 3, 1)
+
+        # Row 4: Dates (Using DateEntry)
+        add_field(scrollable_frame, "PO Date:", "po_date", 4, 0, is_date=True)
+        add_field(scrollable_frame, "Due Date:", "due_date", 4, 1, is_date=True)
+
+        # Large Text Areas
+        add_text_area(scrollable_frame, "Scopes:", "scopes", 5)
+        add_text_area(scrollable_frame, "Out of Scopes:", "out_of_scopes", 6)
+        add_text_area(scrollable_frame, "Deliverables:", "deliverables", 7)
+        add_text_area(scrollable_frame, "Notes/Description:", "description", 8)
 
         # Save Button
-        btn_save = tk.Button(self.scrollable_frame, text="Save All Changes", bg="#4CAF50", fg="white", 
-                             command=self.save_changes, font=("Arial", 11, "bold"), padx=20, pady=10)
-        btn_save.grid(row=14, column=0, columnspan=2, pady=30)
+        btn_save = tk.Button(scrollable_frame, text="Save All Changes", bg="#4CAF50", fg="white", 
+                             command=self.save_changes, font=("Arial", 11, "bold"), padx=20, pady=8)
+        btn_save.grid(row=9, column=0, columnspan=2, pady=20)
 
     def save_changes(self):
         data = {}
         for key, widget in self.widgets.items():
             if isinstance(widget, tk.Text):
                 data[key] = widget.get("1.0", tk.END).strip()
+            elif isinstance(widget, DateEntry):
+                data[key] = widget.get_date().strftime("%Y-%m-%d")
             else:
                 data[key] = widget.get()
         
-        # Add the missing legacy fields so update_project doesn't break
+        # Keep legacy hidden fields
         data["estimated_time"] = self.project.estimated_time
         data["start_date"] = self.project.start_date
         data["end_date"] = self.project.end_date
 
         try:
-            self.db.update_project(self.project.id, data)
-            # Refresh local object
-            for key, val in data.items():
-                setattr(self.project, key, val)
+            self.db.update_project(self.project.id, data) #
+            for key, val in data.items(): setattr(self.project, key, val)
             messagebox.showinfo("Success", "Project details updated!")
         except Exception as e:
             messagebox.showerror("Error", f"Save failed: {e}")

@@ -3,12 +3,12 @@ import sqlite3
 from models import Project, Task
 from models import Project, Task, Employee # Update your imports
 class Database:
-    # ... (Keep existing __init__, create_tables, create_project, get_projects) ...
     def __init__(self, db_name="kanban.db"):
         self.conn = sqlite3.connect(db_name)
         self.conn.row_factory = sqlite3.Row
         self.create_tables()
-
+        self.migrate_database()
+        
     def create_tables(self):
         cursor = self.conn.cursor()
         cursor.execute("""
@@ -120,7 +120,7 @@ class Database:
             data['due_date'], project_id
         ))
         self.conn.commit()
-        
+
     def migrate_database(self):
         cursor = self.conn.cursor()
         new_columns = [
