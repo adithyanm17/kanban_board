@@ -120,6 +120,22 @@ class Database:
             data['due_date'], project_id
         ))
         self.conn.commit()
+        
+    def migrate_database(self):
+        cursor = self.conn.cursor()
+        new_columns = [
+            "part_number", "part_name", "total_cost", "project_manager",
+            "scopes", "out_of_scopes", "deliverables", "po_number",
+            "wo_number", "po_date", "due_date"
+        ]
+        
+        for col in new_columns:
+            try:
+                cursor.execute(f"ALTER TABLE projects ADD COLUMN {col} TEXT")
+            except sqlite3.OperationalError:
+                # Column already exists, skip it
+                pass
+        self.conn.commit()
 
     # ... (Keep existing Task methods exactly as they are) ...
     def create_task(self, project_id, title, description, status):
