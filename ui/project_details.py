@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from tkcalendar import DateEntry # Requires: pip install tkcalendar
+from tkcalendar import DateEntry
 
 class ProjectDetailsForm(tk.Frame):
     def __init__(self, parent, db, project):
@@ -22,67 +22,62 @@ class ProjectDetailsForm(tk.Frame):
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-        # --- Helper for 2 Fields Per Row ---
+        # Configuration for 4 entry fields per row (Total 8 columns in grid: Label, Entry, Label, Entry...)
         def add_field(parent, label_text, attr, row, col, is_date=False):
-            frame = tk.Frame(parent, bg="white")
-            frame.grid(row=row, column=col, padx=15, pady=5, sticky="w")
-            
-            tk.Label(frame, text=label_text, bg="white", font=("Arial", 9, "bold")).pack(anchor="w")
+            tk.Label(parent, text=label_text, bg="white", font=("Arial", 8, "bold")).grid(row=row, column=col*2, sticky="w", padx=(10, 2), pady=5)
             val = getattr(self.project, attr) or ""
             
             if is_date:
-                # Standardized date entry
-                widget = DateEntry(frame, width=25, background='darkblue', 
-                                   foreground='white', borderwidth=2, date_pattern='yyyy-mm-dd')
+                widget = DateEntry(parent, width=15, background='darkblue', foreground='white', borderwidth=2, date_pattern='yyyy-mm-dd')
                 if val: widget.set_date(val)
             else:
-                widget = tk.Entry(frame, width=28, font=("Arial", 10))
+                widget = tk.Entry(parent, width=18)
                 widget.insert(0, val)
             
-            widget.pack(fill="x")
+            widget.grid(row=row, column=col*2 + 1, sticky="w", padx=(0, 10), pady=5)
             self.widgets[attr] = widget
 
-        # --- Helper for Full-Width Text Areas ---
-        def add_text_area(parent, label_text, attr, row):
+        # Configuration for 2 text areas per row
+        def add_text_area(parent, label_text, attr, row, col):
             frame = tk.Frame(parent, bg="white")
-            frame.grid(row=row, column=0, columnspan=2, padx=15, pady=10, sticky="ew")
+            frame.grid(row=row, column=col*4, columnspan=4, padx=10, pady=10, sticky="nsew")
             
-            tk.Label(frame, text=label_text, bg="white", font=("Arial", 9, "bold")).pack(anchor="w")
-            widget = tk.Text(frame, height=4, font=("Arial", 10), bd=1, relief="solid")
+            tk.Label(frame, text=label_text, bg="white", font=("Arial", 8, "bold")).pack(anchor="w")
+            widget = tk.Text(frame, height=5, width=40, font=("Arial", 9), bd=1, relief="solid")
+            # Preserve existing data (like description from creation)
             widget.insert("1.0", getattr(self.project, attr) or "")
-            widget.pack(fill="x")
+            widget.pack(fill="both", expand=True)
             self.widgets[attr] = widget
 
-        # Row 0: Basic Info
+        # Row 0: 4 Fields
         add_field(scrollable_frame, "Project Name:", "name", 0, 0)
         add_field(scrollable_frame, "Customer:", "customer", 0, 1)
+        add_field(scrollable_frame, "Manager:", "project_manager", 0, 2)
+        add_field(scrollable_frame, "Total Cost:", "total_cost", 0, 3)
 
-        # Row 1: Management
-        add_field(scrollable_frame, "Project Manager:", "project_manager", 1, 0)
-        add_field(scrollable_frame, "Est. Total Cost:", "total_cost", 1, 1)
+        # Row 1: 4 Fields
+        add_field(scrollable_frame, "Part Number:", "part_number", 1, 0)
+        add_field(scrollable_frame, "Part Name:", "part_name", 1, 1)
+        add_field(scrollable_frame, "PO Number:", "po_number", 1, 2)
+        add_field(scrollable_frame, "Work Order:", "wo_number", 1, 3)
 
-        # Row 2: Parts
-        add_field(scrollable_frame, "Part Number:", "part_number", 2, 0)
-        add_field(scrollable_frame, "Part Name:", "part_name", 2, 1)
+        # Row 2: 2 Date Fields (taking up half the row)
+        add_field(scrollable_frame, "PO Date:", "po_date", 2, 0, is_date=True)
+        add_field(scrollable_frame, "Due Date:", "due_date", 2, 1, is_date=True)
 
-        # Row 3: Orders
-        add_field(scrollable_frame, "PO Number:", "po_number", 3, 0)
-        add_field(scrollable_frame, "Work Order No:", "wo_number", 3, 1)
+        # Row 3: 2 Text Areas (Scopes & Out of Scopes)
+        add_text_area(scrollable_frame, "Scopes:", "scopes", 3, 0)
+        add_text_area(scrollable_frame, "Out of Scopes:", "out_of_scopes", 3, 1)
 
-        # Row 4: Dates (Using DateEntry)
-        add_field(scrollable_frame, "PO Date:", "po_date", 4, 0, is_date=True)
-        add_field(scrollable_frame, "Due Date:", "due_date", 4, 1, is_date=True)
-
-        # Large Text Areas
-        add_text_area(scrollable_frame, "Scopes:", "scopes", 5)
-        add_text_area(scrollable_frame, "Out of Scopes:", "out_of_scopes", 6)
-        add_text_area(scrollable_frame, "Deliverables:", "deliverables", 7)
-        add_text_area(scrollable_frame, "Notes/Description:", "description", 8)
+        # Row 4: 2 Text Areas (Deliverables & Description/Notes)
+        add_text_area(scrollable_frame, "Deliverables:", "deliverables", 4, 0)
+        # This preserves the original project description entered during creation
+        add_text_area(scrollable_frame, "Notes/Description:", "description", 4, 1)
 
         # Save Button
         btn_save = tk.Button(scrollable_frame, text="Save All Changes", bg="#4CAF50", fg="white", 
-                             command=self.save_changes, font=("Arial", 11, "bold"), padx=20, pady=8)
-        btn_save.grid(row=9, column=0, columnspan=2, pady=20)
+                             command=self.save_changes, font=("Arial", 10, "bold"), padx=20, pady=10)
+        btn_save.grid(row=5, column=0, columnspan=8, pady=20)
 
     def save_changes(self):
         data = {}
@@ -94,14 +89,14 @@ class ProjectDetailsForm(tk.Frame):
             else:
                 data[key] = widget.get()
         
-        # Keep legacy hidden fields
+        # Maintain hidden project data
         data["estimated_time"] = self.project.estimated_time
         data["start_date"] = self.project.start_date
         data["end_date"] = self.project.end_date
 
         try:
-            self.db.update_project(self.project.id, data) #
+            self.db.update_project(self.project.id, data)
             for key, val in data.items(): setattr(self.project, key, val)
-            messagebox.showinfo("Success", "Project details updated!")
+            messagebox.showinfo("Success", "Project data synchronized.")
         except Exception as e:
-            messagebox.showerror("Error", f"Save failed: {e}")
+            messagebox.showerror("Error", f"Database error: {e}")
