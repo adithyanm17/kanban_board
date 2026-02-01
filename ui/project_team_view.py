@@ -27,10 +27,8 @@ class ProjectTeamView(tk.Frame):
         for item in self.tree.get_children():
             self.tree.delete(item)
         
-        # This fetches everyone in the master list and their specific count for this project
-        # Ensure your database.py get_project_team_with_counts method uses a LEFT JOIN
-        # on employees to ensure EVERYONE appears in the list.
         team_data = self.db.get_project_team_with_counts(self.project.id)
+        
         for row in team_data:
             self.tree.insert("", "end", values=(row[1], row[2], row[3], row[4]))
 

@@ -8,7 +8,7 @@ class Database:
         self.conn.row_factory = sqlite3.Row
         self.create_tables()
         self.migrate_database()
-        
+
     def create_tables(self):
         cursor = self.conn.cursor()
         cursor.execute("""
@@ -294,18 +294,22 @@ class Database:
         return [Employee(row['id'], row['emp_code'], row['name'], row['doj'], 
                         row['designation'], row['email'], row['github']) for row in rows]
     def get_project_team_with_counts(self, project_id):
-        """Fetches employees in a project and the number of tasks assigned to them."""
+        """Fetches all employees in a project, including those with 0 tasks."""
         cursor = self.conn.cursor()
         cursor.execute("""
-            SELECT e.id, e.emp_code, e.name, e.designation,
-                (SELECT COUNT(*) FROM task_assignments ta 
-                    JOIN tasks t ON ta.task_id = t.id
-                    WHERE ta.employee_id = e.id AND t.project_id = ?) as task_count
-            FROM employees e
-            JOIN project_team pt ON e.id = pt.employee_id
+            SELECT 
+                e.id, 
+                e.emp_code, 
+                e.name, 
+                e.designation,
+                COUNT(ta.task_id) as task_count
+            FROM project_team pt
+            JOIN employees e ON pt.employee_id = e.id
+            LEFT JOIN tasks t ON t.project_id = pt.project_id
+            LEFT JOIN task_assignments ta ON (ta.employee_id = e.id AND ta.task_id = t.id)
             WHERE pt.project_id = ?
-        """, (project_id, project_id))
+            GROUP BY e.id
+        """, (project_id,))
         return cursor.fetchall()
-
     def close(self):
         self.conn.close()
