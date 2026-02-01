@@ -12,16 +12,27 @@ class Database:
     def create_tables(self):
         cursor = self.conn.cursor()
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS projects (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL UNIQUE,
-                description TEXT,
-                customer TEXT,
-                estimated_time TEXT,
-                start_date TEXT,
-                end_date TEXT
-            )
-        """)
+        CREATE TABLE IF NOT EXISTS projects (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT,
+            customer TEXT,
+            estimated_time TEXT,
+            start_date TEXT,
+            end_date TEXT,
+            part_number TEXT,
+            part_name TEXT,
+            total_cost TEXT,
+            project_manager TEXT,
+            scopes TEXT,
+            out_of_scopes TEXT,
+            deliverables TEXT,
+            po_number TEXT,
+            wo_number TEXT,
+            po_date TEXT,
+            due_date TEXT
+        )
+    """)
         try:
             cursor.execute("ALTER TABLE tasks ADD COLUMN created_at TEXT")
         except sqlite3.OperationalError:
@@ -96,9 +107,18 @@ class Database:
         cursor = self.conn.cursor()
         cursor.execute("""
             UPDATE projects 
-            SET name=?, description=?, customer=?, estimated_time=?, start_date=?, end_date=?
+            SET name=?, description=?, customer=?, estimated_time=?, start_date=?, end_date=?,
+                part_number=?, part_name=?, total_cost=?, project_manager=?, 
+                scopes=?, out_of_scopes=?, deliverables=?, 
+                po_number=?, wo_number=?, po_date=?, due_date=?
             WHERE id=?
-        """, (data['name'], data['description'], data['customer'], data['estimated_time'], data['start_date'], data['end_date'], project_id))
+        """, (
+            data['name'], data['description'], data['customer'], data['estimated_time'], 
+            data['start_date'], data['end_date'], data['part_number'], data['part_name'], 
+            data['total_cost'], data['project_manager'], data['scopes'], data['out_of_scopes'], 
+            data['deliverables'], data['po_number'], data['wo_number'], data['po_date'], 
+            data['due_date'], project_id
+        ))
         self.conn.commit()
 
     # ... (Keep existing Task methods exactly as they are) ...
