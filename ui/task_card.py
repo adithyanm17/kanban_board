@@ -44,14 +44,14 @@ class TaskCard(tk.Frame):
             self.lbl_log.pack(fill="x", pady=(4, 0))
 
         # 4. Assigned Employees - Fix for many names
-        assignees = self.db.get_task_assignees(self.task.id)
+        assignees = self.db.get_task_assignees(self.task.id) #
         if assignees:
             names_text = "Assignees: " + ", ".join(assignees)
-            # wraplength=200 allows the list of names to grow vertically
+            # Create the label for the card
             self.lbl_assignees = tk.Label(self.container, text=names_text, 
-                                          font=("Arial", 8, "bold"), bg="white", 
-                                          fg="#4CAF50", anchor="w", 
-                                          justify="left", wraplength=200)
+                                        font=("Arial", 8, "bold"), bg="white", 
+                                        fg="#4CAF50", anchor="w", 
+                                        justify="left", wraplength=200) #
             self.lbl_assignees.pack(fill="x", pady=(6, 0))
         self.bind_recursive(self)
 

@@ -188,21 +188,31 @@ class Database:
     def assign_employee_to_task(self, task_id, employee_id):
         cursor = self.conn.cursor()
         try:
+            # 1. Link employee to the task
             cursor.execute("INSERT INTO task_assignments (task_id, employee_id) VALUES (?, ?)", 
                         (task_id, employee_id))
+            
+            # 2. Find the project ID for this task
+            cursor.execute("SELECT project_id FROM tasks WHERE id = ?", (task_id,))
+            result = cursor.fetchone()
+            if result:
+                project_id = result[0]
+                # 3. Automatically add them to the Project Team if they aren't already there
+                cursor.execute("INSERT OR IGNORE INTO project_team (project_id, employee_id) VALUES (?, ?)",
+                            (project_id, employee_id))
+            
             self.conn.commit()
         except sqlite3.IntegrityError:
-            pass # Already assigned
+            pass
 
     def get_task_assignees(self, task_id):
-        cursor = self.conn.cursor()
+        cursor = self.conn.cursor() #
         cursor.execute("""
             SELECT e.name FROM employees e
             JOIN task_assignments ta ON e.id = ta.employee_id
             WHERE ta.task_id = ?
-        """, (task_id,))
-        # Returns a list of names like ["Adith", "John"]
-        return [row[0] for row in cursor.fetchall()]
+        """, (task_id,)) #
+        return [row[0] for row in cursor.fetchall()] #
 
     def save_employee(self, data):
         cursor = self.conn.cursor()
@@ -294,7 +304,7 @@ class Database:
         return [Employee(row['id'], row['emp_code'], row['name'], row['doj'], 
                         row['designation'], row['email'], row['github']) for row in rows]
     def get_project_team_with_counts(self, project_id):
-        """Fetches all employees in a project, including those with 0 tasks."""
+        """Fetches project team members and their task count for THIS specific project."""
         cursor = self.conn.cursor()
         cursor.execute("""
             SELECT 
@@ -302,14 +312,15 @@ class Database:
                 e.emp_code, 
                 e.name, 
                 e.designation,
-                COUNT(ta.task_id) as task_count
+                (SELECT COUNT(*) 
+                FROM task_assignments ta 
+                JOIN tasks t ON ta.task_id = t.id 
+                WHERE ta.employee_id = e.id AND t.project_id = ?) as task_count
             FROM project_team pt
             JOIN employees e ON pt.employee_id = e.id
-            LEFT JOIN tasks t ON t.project_id = pt.project_id
-            LEFT JOIN task_assignments ta ON (ta.employee_id = e.id AND ta.task_id = t.id)
             WHERE pt.project_id = ?
-            GROUP BY e.id
-        """, (project_id,))
+        """, (project_id, project_id))
         return cursor.fetchall()
+    
     def close(self):
         self.conn.close()

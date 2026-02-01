@@ -114,9 +114,16 @@ class MainWindow(tk.Tk):
         self.filter_projects()
 
     def filter_projects(self, *args):
-        """Filters the project list based on search input."""
-        # SAFETY CHECK: If the listbox hasn't been created yet, exit the function
+        """Filters the project list with a safety check for destroyed widgets."""
+        # Check 1: Does the attribute exist?
         if not hasattr(self, 'project_list_box'):
+            return
+        
+        # Check 2: Has the widget been destroyed by a view switch?
+        try:
+            if not self.project_list_box.winfo_exists():
+                return
+        except (tk.TclError, AttributeError):
             return
 
         query = self.project_search_var.get().lower()
@@ -125,12 +132,11 @@ class MainWindow(tk.Tk):
 
         self.project_list_box.delete(0, tk.END)
         
-        # Filter logic: Check name and customer
+        # Rest of your filter logic...
         self.filtered_projects = [
             p for p in self.all_projects 
             if query in p.name.lower() or (p.customer and query in p.customer.lower())
         ]
-
         for p in self.filtered_projects:
             self.project_list_box.insert(tk.END, p.name)
 
@@ -138,7 +144,6 @@ class MainWindow(tk.Tk):
         selection = self.project_list_box.curselection()
         if selection:
             index = selection[0]
-            # Use filtered_projects to ensure correct index mapping
             project = self.filtered_projects[index]
             self.load_project_tabs(project)
 
