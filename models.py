@@ -31,7 +31,14 @@ class Task:
         self.status = status
         self.sort_order = sort_order
 
-
+class ProjectPlan:
+    def __init__(self, id, project_id, todo_item, start_date, end_date):
+        self.id = id
+        self.project_id = project_id
+        self.todo_item = todo_item
+        self.start_date = start_date
+        self.end_date = end_date
+        
 class Employee:
     def __init__(self, id, emp_code, name, doj, designation, email, github):
         self.id = id

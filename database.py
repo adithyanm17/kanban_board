@@ -83,6 +83,17 @@ class Database:
         )
     """)
         self.conn.commit()
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS project_planning (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id INTEGER,
+            todo_item TEXT NOT NULL,
+            start_date TEXT,
+            end_date TEXT,
+            FOREIGN KEY (project_id) REFERENCES projects (id)
+        )
+    """)
+        self.conn.commit()
 
     def create_project(self, data):
         try:
@@ -135,6 +146,21 @@ class Database:
             except sqlite3.OperationalError:
                 # Column already exists, skip it
                 pass
+        self.conn.commit()
+    def add_plan_item(self, project_id, todo, start, end):
+        cursor = self.conn.cursor()
+        cursor.execute("INSERT INTO project_planning (project_id, todo_item, start_date, end_date) VALUES (?, ?, ?, ?)",
+                    (project_id, todo, start, end))
+        self.conn.commit()
+
+    def get_project_plans(self, project_id):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM project_planning WHERE project_id = ?", (project_id,))
+        return cursor.fetchall()
+
+    def delete_plan_item(self, plan_id):
+        cursor = self.conn.cursor()
+        cursor.execute("DELETE FROM project_planning WHERE id = ?", (plan_id,))
         self.conn.commit()
 
     # ... (Keep existing Task methods exactly as they are) ...
